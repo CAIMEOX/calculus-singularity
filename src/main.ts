@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import { createBox } from "./box";
 import { createInfoPanel, updateInfoPanel } from "./infoPanel";
-import { Vector2, ViewModel, BoxView, LevelInfo } from "./types";
+import { Vector2, ViewModel, LevelInfo } from "./types";
 import { createBackupPanel, renderBackupPanel } from "./backupPanel";
 import {
   init_model,
@@ -10,6 +10,7 @@ import {
   hover_box,
   clear_hover,
   undo,
+  style_for_kind,
   save_backup,
   list_backups,
   restore_backup,
@@ -76,73 +77,6 @@ const playerStyle = (cellSize: number) => ({
   symbol: "λ",
 });
 
-const boxStyleFor = (cellSize: number, box: BoxView) => {
-  const base = {
-    size: cellSize,
-    borderWidth: 1.5,
-    symbolFont: `bold ${Math.max(16, cellSize * 0.5)}px "Courier New", Courier, monospace`,
-  };
-  switch (box.kind) {
-    case "wall":
-      return {
-        ...base,
-        fillColor: COLORS.WALL_FILL,
-        borderColor: COLORS.WALL_BORDER,
-        symbol: "",
-      };
-    case "prop":
-      return {
-        ...base,
-        fillColor: COLORS.PROP_FILL,
-        borderColor: COLORS.PROP_BORDER,
-        symbol: box.label ?? "?",
-      };
-    case "implication": {
-      const premise = box.label ?? "∙";
-      const conclusion = box.secondary ?? "∙";
-      return {
-        ...base,
-        fillColor: COLORS.IMPLICATION_FILL,
-        borderColor: COLORS.BOX_BORDER,
-        symbol: `${premise}→${conclusion}`,
-        symbolFont: `bold ${Math.max(14, cellSize * 0.4)}px "Courier New", Courier, monospace`,
-      };
-    }
-    case "and": {
-      const left = box.label ?? "?";
-      const right = box.secondary ?? "?";
-      return {
-        ...base,
-        fillColor: COLORS.AND_FILL,
-        borderColor: 0xb094ff,
-        symbol: `${left}∧${right}`,
-        symbolFont: `bold ${Math.max(13, cellSize * 0.38)}px "Courier New", Courier, monospace`,
-      };
-    }
-    case "pi1":
-      return {
-        ...base,
-        fillColor: COLORS.PI_FILL,
-        borderColor: 0x74c0ff,
-        symbol: "π₁",
-      };
-    case "pi2":
-      return {
-        ...base,
-        fillColor: COLORS.PI_FILL,
-        borderColor: 0xff9fdc,
-        symbol: "π₂",
-      };
-    default:
-      return {
-        ...base,
-        fillColor: COLORS.BOX_FILL,
-        borderColor: COLORS.BOX_BORDER,
-        symbol: "?",
-      };
-  }
-};
-
 function drawGrid(
   stage: PIXI.Container,
   gridWidth: number,
@@ -178,7 +112,7 @@ function renderBoxes(
 ) {
   layer.removeChildren().forEach((child) => child.destroy());
   view.boxes.forEach((box) => {
-    const visual = createBox(boxStyleFor(view.cellSize, box));
+    const visual = createBox(style_for_kind(box.kind, view.cellSize,));
     const pos = toPixels(view.cellSize, box.pos);
     visual.x = pos.x;
     visual.y = pos.y;

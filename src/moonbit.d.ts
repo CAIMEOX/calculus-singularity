@@ -12,4 +12,5 @@ declare module "../singularity/target/js/release/build/cs.js" {
   export function view(model: unknown): any;
   export function generate_panel_content(model: unknown): string;
   export function level_infos(): any;
+  export function style_for_kind(kind: unknown, cellSize: number): any;
 }

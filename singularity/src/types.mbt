@@ -10,21 +10,20 @@ pub struct Vector {
 pub struct Box {
   id : Int
   pos : Vector
-  kind : BoxType
+  kind : Kind
 }
 
 ///|
 /// Supported box kinds
-pub enum BoxType {
+pub enum Kind {
   Wall
   Prop(String)
-  Implication(BoxType, BoxType)
-  And(BoxType, BoxType)
-  Neg(BoxType?)
+  Implication(Kind, Kind)
+  And(Kind, Kind)
+  Neg(Kind?)
   Fst
   Snd
 } derive(Eq)
-
 
 ///|
 /// Internal application state handled entirely inside Moonbit
@@ -56,7 +55,7 @@ pub struct Snapshot {
 /// Render-ready snapshot returned to the TypeScript renderer
 pub struct ViewModel {
   player : Vector
-  boxes : Array[BoxView]
+  boxes : Array[Box]
   hoveredBoxId : Int?
   gridWidth : Int
   gridHeight : Int
@@ -68,19 +67,9 @@ pub struct ViewModel {
 }
 
 ///|
-/// Shape sent to the renderer for each box
-pub struct BoxView {
-  id : Int
-  pos : Vector
-  kind : String
-  label : String?
-  secondary : String?
-}
-
-///|
 pub struct Goal {
   pos : Vector
-  prop : BoxType
+  prop : Kind
 }
 
 ///|

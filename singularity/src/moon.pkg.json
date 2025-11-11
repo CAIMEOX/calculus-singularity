@@ -14,7 +14,8 @@
                 "get_active_backup_meta",
                 "view",
                 "generate_panel_content",
-                "level_infos"
+                "level_infos",
+                "style_for_kind"
             ]
         }
     }

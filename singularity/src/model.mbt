@@ -103,7 +103,7 @@ pub fn clear_hover(model : Model) -> Model {
 pub fn view(model : Model) -> ViewModel {
   {
     player: model.player,
-    boxes: build_box_views(model.boxes),
+    boxes: model.boxes.copy(),
     hoveredBoxId: model.hoveredBoxId,
     gridWidth: model.gridWidth,
     gridHeight: model.gridHeight,
@@ -242,11 +242,6 @@ fn has_box(boxes : Array[Box], boxId : Int) -> Bool {
 }
 
 ///|
-fn build_box_views(boxes : Array[Box]) -> Array[BoxView] {
-  boxes.map(to_box_view)
-}
-
-///|
 fn append_snapshot(
   history : Array[Snapshot],
   player : Vector,
@@ -342,53 +337,6 @@ fn merge_chain_if_possible(
 }
 
 ///|
-fn to_box_view(box : Box) -> BoxView {
-  match box.kind {
-    Wall =>
-      { id: box.id, pos: box.pos, kind: "wall", label: None, secondary: None }
-    Prop(label) =>
-      {
-        id: box.id,
-        pos: box.pos,
-        kind: "prop",
-        label: Some(label),
-        secondary: None,
-      }
-    Implication(premise, conclusion) =>
-      {
-        id: box.id,
-        pos: box.pos,
-        kind: "implication",
-        label: Some(premise.to_string()),
-        secondary: Some(conclusion.to_string()),
-      }
-    And(left, right) =>
-      {
-        id: box.id,
-        pos: box.pos,
-        kind: "and",
-        label: Some(left.to_string()),
-        secondary: Some(right.to_string()),
-      }
-    Fst =>
-      { id: box.id, pos: box.pos, kind: "pi1", label: None, secondary: None }
-    Snd =>
-      { id: box.id, pos: box.pos, kind: "pi2", label: None, secondary: None }
-    Neg(inner) =>
-      {
-        id: box.id,
-        pos: box.pos,
-        kind: "neg",
-        label: match inner {
-          Some(kind) => Some(kind.to_string())
-          None => None
-        },
-        secondary: None,
-      }
-  }
-}
-
-///|
 fn goals_completed(boxes : Array[Box], goals : Array[Goal]) -> Bool {
   goals.iter().all(goal => goal_satisfied(goal.pos, goal.prop, boxes))
 }
@@ -411,12 +359,12 @@ fn build_goal_views(goals : Array[Goal], boxes : Array[Box]) -> Array[GoalView] 
 }
 
 ///|
-fn goal_satisfied(pos : Vector, prop : BoxType, boxes : Array[Box]) -> Bool {
+fn goal_satisfied(pos : Vector, prop : Kind, boxes : Array[Box]) -> Bool {
   find_box_at_position(boxes, pos) is Some(box) && box.kind == prop
 }
 
 ///|
-fn fusion_result(first : BoxType, second : BoxType) -> BoxType? {
+fn fusion_result(first : Kind, second : Kind) -> Kind? {
   match (first, second) {
     (Prop(_) as p1, Prop(_) as p2) => Some(And(p1, p2))
     (Implication(a, b), Implication(c, d)) if b == c => Some(Implication(a, d))
@@ -441,7 +389,7 @@ fn apply_merge(
   boxes : Array[Box],
   first : Box,
   second : Box,
-  new_kind : BoxType,
+  new_kind : Kind,
 ) -> Array[Box] {
   let len = boxes.length()
   let merged = Array::new(capacity=len - 1)

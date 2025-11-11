@@ -4,12 +4,12 @@ fn box_by_id(boxes : Array[Box], id : Int) -> Box? {
 }
 
 ///|
-fn BoxView::on_goal(self : BoxView, goals : Array[GoalView]) -> Bool {
+fn Box::on_goal(self : Box, goals : Array[GoalView]) -> Bool {
   goals.iter().any(g => same_position(self.pos, g.pos))
 }
 
 ///|
-pub impl Show for BoxType with to_string(self) {
+pub impl Show for Kind with to_string(self) {
   match self {
     Wall => "Wall"
     Prop(label) => "\{label}"
@@ -37,45 +37,15 @@ pub impl Show for BoxType with to_string(self) {
 }
 
 ///|
-pub impl Show for BoxType with output(self, f) {
+pub impl Show for Kind with output(self, f) {
   f.write_string(self.to_string())
 }
 
 ///|
-pub impl Show for BoxView
-
-///|
-pub impl Show for BoxView with output(self, logger) {
-  let pos = self.pos
-  let descriptor = describe_box(self.kind, self.label, self.secondary)
-  logger.write_string("位置: (\{pos.x}, \{pos.y})<br>\{descriptor}")
-}
-
-///|
-fn describe_box(kind : String, label : String?, secondary : String?) -> String {
-  if kind == "prop" {
-    match label {
-      Some(value) => "Prop: \{value}"
-      None => "命题"
-    }
-  } else if kind == "implication" {
-    match (label, secondary) {
-      (Some(premise), Some(conclusion)) =>
-        "Implication \{premise} → \{conclusion}"
-      _ => "蕴涵"
-    }
-  } else if kind == "and" {
-    match (label, secondary) {
-      (Some(left), Some(right)) => "合取：(\{left} ∧ \{right})"
-      _ => "合取"
-    }
-  } else if kind == "pi1" {
-    "π₁ Eliminator"
-  } else if kind == "pi2" {
-    "π₂ Eliminator"
-  } else {
-    kind
-  }
+pub impl Show for Box with output(self, f) {
+  f.write_string(
+    "Box \{self.id}: \{self.kind} @ (\{self.pos.x}, \{self.pos.y})",
+  )
 }
 
 ///|
@@ -105,7 +75,7 @@ pub fn generate_panel_content(modelView : ViewModel) -> String {
     content += "\{status} \{goal.prop} @ (\{goal.pos.x}, \{goal.pos.y})<br>"
   }
   for box in modelView.boxes {
-    guard box.kind != "wall" else { continue }
+    guard box.kind != Wall else { continue }
     let on_goal = if box.on_goal(modelView.goals) { "Yes" } else { "No" }
     let temp = box.to_string() + "<br>On Goal: \{on_goal}</br>"
     content += if modelView.hoveredBoxId is Some(id) && box.id == id {
@@ -115,4 +85,85 @@ pub fn generate_panel_content(modelView : ViewModel) -> String {
     }
   }
   content
+}
+
+///|
+pub(all) struct Style {
+  size : Int
+  borderWidth : Float
+  symbolFont : String
+  fillColor : Int
+  borderColor : Int
+  symbol : String
+}
+
+///|
+pub fn style_for_kind(kind : Kind, cellSize : Int) -> Style {
+  let symbolFont = "bold \{@cmp.maximum(16.0, cellSize.to_double() * 0.5)}px \"Courier New\", Courier, monospace"
+  let borderWidth : Float = 1.5
+  match kind {
+    Wall =>
+      {
+        size: cellSize,
+        borderWidth: 1.5,
+        symbolFont,
+        fillColor: WALL_FILL,
+        borderColor: WALL_BORDER,
+        symbol: "",
+      }
+    Prop(label) =>
+      {
+        size: cellSize,
+        borderWidth,
+        symbolFont,
+        fillColor: PROP_FILL,
+        borderColor: PROP_BORDER,
+        symbol: label,
+      }
+    Implication(_, _) =>
+      {
+        size: cellSize,
+        borderWidth,
+        symbolFont,
+        fillColor: IMPLICATION_FILL,
+        borderColor: PROP_BORDER,
+        symbol: "→",
+      }
+    And(_, _) =>
+      {
+        size: cellSize,
+        borderWidth,
+        symbolFont,
+        fillColor: AND_FILL,
+        borderColor: AND_BORDER,
+        symbol: "∧",
+      }
+    Fst =>
+      {
+        size: cellSize,
+        borderWidth,
+        symbolFont,
+        fillColor: PI_FILL,
+        borderColor: 0x74c0ff,
+        symbol: "π₁",
+      }
+    Snd =>
+      {
+        size: cellSize,
+        borderWidth,
+        symbolFont,
+        fillColor: PI_FILL,
+        borderColor: 0xff9fdc,
+        symbol: "π₂",
+      }
+    Neg(_) =>
+      {
+        size: cellSize,
+        borderWidth,
+        symbolFont,
+        fillColor: 0xFFD0D0,
+        borderColor: 0xC00000,
+        symbol: "¬",
+      }
+  }
 }
