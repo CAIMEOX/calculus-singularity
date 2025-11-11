@@ -2,16 +2,28 @@ import * as PIXI from "pixi.js";
 import { createBox } from "./box";
 import { createInfoPanel, updateInfoPanel } from "./infoPanel";
 import { Vector2, ViewModel, BoxView } from "./types";
+import { createBackupPanel, renderBackupPanel } from "./backupPanel";
 import {
   init_model,
   move_with_key,
   hover_box,
   clear_hover,
   undo,
+  save_backup,
+  list_backups,
+  restore_backup,
+  get_active_backup_meta,
   view as moonView,
 } from "../singularity/target/js/release/build/cs.js";
 
 type CoreModel = unknown;
+
+interface BackupMeta {
+  id: number;
+  parentId: number | null;
+  childIds: number[];
+  timestamp: number;
+}
 
 const COLORS = {
   GRID: 0x444444,
@@ -24,6 +36,9 @@ const COLORS = {
   GOAL: 0x2ef5a0,
   GOAL_COMPLETE: 0xf5d142,
 };
+
+const thumbnailStore = new Map<number, string>();
+const placeholderThumbnail = createPlaceholderThumbnail();
 
 interface HoverHandlers {
   hover: (boxId: number) => void;
@@ -147,16 +162,26 @@ function createPixiApplication(side: number) {
     antialias: true,
     backgroundColor: 0x1a1a1a,
     resolution: 2,
-    
   });
 }
 
 function mount(app: PIXI.Application) {
   const container = document.getElementById("game-container")!;
-  container.appendChild(app.view as HTMLCanvasElement);
+  container.style.display = "flex";
+  container.style.alignItems = "flex-start";
+  container.style.gap = "16px";
+
+  const { panel: backupPanel, list: backupList } = createBackupPanel();
+  container.appendChild(backupPanel);
+
+  const stageWrapper = document.createElement("div");
+  stageWrapper.style.flex = "0 0 auto";
+  stageWrapper.appendChild(app.view as HTMLCanvasElement);
+  container.appendChild(stageWrapper);
+
   const panel = createInfoPanel();
   container.appendChild(panel);
-  return panel;
+  return { infoPanel: panel, backupList };
 }
 
 function normalizeViewModel(raw: any): ViewModel {
@@ -176,7 +201,7 @@ function main() {
   let viewModel: ViewModel = normalizeViewModel(moonView(coreModel));
 
   const app = createPixiApplication(viewModel.gridSize * viewModel.cellSize);
-  const infoPanel = mount(app);
+  const { infoPanel, backupList } = mount(app);
   const ctx = createRenderer(app, viewModel);
 
   const handlers: HoverHandlers = {
@@ -196,6 +221,47 @@ function main() {
     updateInfoPanel(infoPanel, viewModel);
   };
 
+  const getBackupMetas = () => (list_backups(coreModel) ?? []) as BackupMeta[];
+
+  const getActiveBackup = () =>
+    (get_active_backup_meta(coreModel) as BackupMeta | undefined) ?? undefined;
+
+  const refreshBackups = () => {
+    const metas = getBackupMetas();
+    const activeMeta = getActiveBackup();
+    const items = metas
+      .slice()
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((meta) => ({
+        id: String(meta.id),
+        timestamp: meta.timestamp,
+        thumbnail: thumbnailStore.get(meta.id) ?? placeholderThumbnail,
+      }));
+    renderBackupPanel(
+      backupList,
+      items,
+      activeMeta ? String(activeMeta.id) : null,
+      (id) => {
+        const backupId = Number(id);
+        coreModel = restore_backup(coreModel, backupId);
+        render();
+        refreshBackups();
+      }
+    );
+  };
+
+  const saveBackup = () => {
+    const thumbnail = captureThumbnail(app);
+    coreModel = save_backup(coreModel, Date.now());
+    const activeMeta = getActiveBackup();
+    if (activeMeta) {
+      thumbnailStore.set(activeMeta.id, thumbnail);
+    }
+    refreshBackups();
+  };
+
+  refreshBackups();
+
   window.addEventListener("keydown", (e) => {
     if (e.key === "z" || e.key === "Z") {
       const next = undo(coreModel);
@@ -203,6 +269,17 @@ function main() {
         coreModel = next;
         render();
       }
+      return;
+    }
+    if (e.key === "r" || e.key === "R") {
+      coreModel = init_model();
+      thumbnailStore.clear();
+      refreshBackups();
+      render();
+      return;
+    }
+    if (e.key === "s" || e.key === "S") {
+      saveBackup();
       return;
     }
     const next = move_with_key(coreModel, e.key);
@@ -216,3 +293,39 @@ function main() {
 }
 
 main();
+
+function captureThumbnail(app: PIXI.Application): string {
+  const source = app.renderer.extract.canvas(app.stage);
+  const maxEdge = Math.max(source.width, source.height);
+  const targetEdge = 160;
+  const scale = targetEdge / maxEdge;
+  const width = Math.max(1, Math.round(source.width * scale));
+  const height = Math.max(1, Math.round(source.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.drawImage(source as CanvasImageSource, 0, 0, width, height);
+  }
+  const dataUrl = canvas.toDataURL("image/png");
+  return dataUrl;
+}
+
+function createPlaceholderThumbnail(): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = 120;
+  canvas.height = 90;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.fillStyle = "#090909";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#1f1f1f";
+    ctx.fillRect(4, 4, canvas.width - 8, canvas.height - 8);
+    ctx.strokeStyle = "#333";
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.fillStyle = "#0ff";
+    ctx.fillRect(8, canvas.height - 12, canvas.width - 16, 4);
+  }
+  return canvas.toDataURL("image/png");
+}

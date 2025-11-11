@@ -31,6 +31,9 @@ pub struct Model {
   goals : Array[Vector]
   history : Array[Snapshot]
   isComplete : Bool
+  backups : Array[BackupNode]
+  activeBackupId : Int?
+  nextBackupId : Int
 }
 
 ///|
@@ -59,6 +62,31 @@ pub struct BoxView {
   pos : Vector
   kind : String
   value : Int?
+}
+
+///|
+pub struct BackupState {
+  player : Vector
+  boxes : Array[Box]
+  hoveredBoxId : Int?
+  history : Array[Snapshot]
+}
+
+///|
+pub struct BackupNode {
+  id : Int
+  parentId : Int?
+  childIds : Array[Int]
+  timestamp : Int
+  state : BackupState
+}
+
+///|
+pub struct BackupMeta {
+  id : Int
+  parentId : Int?
+  childIds : Array[Int]
+  timestamp : Int
 }
 
 ///|

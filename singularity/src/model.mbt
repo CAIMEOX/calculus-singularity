@@ -24,6 +24,9 @@ pub fn init_model() -> Model {
     goals,
     history: Array::new(),
     isComplete: goals_completed(boxes, goals),
+    backups: Array::new(),
+    activeBackupId: None,
+    nextBackupId: 0,
   }
 }
 
@@ -49,6 +52,9 @@ pub fn hover_box(model : Model, boxId : Int) -> Model {
       history: model.history,
       goals: model.goals,
       isComplete: model.isComplete,
+      backups: model.backups,
+      activeBackupId: model.activeBackupId,
+      nextBackupId: model.nextBackupId,
     }
   } else {
     model
@@ -67,6 +73,9 @@ pub fn clear_hover(model : Model) -> Model {
     history: model.history,
     goals: model.goals,
     isComplete: model.isComplete,
+    backups: model.backups,
+    activeBackupId: model.activeBackupId,
+    nextBackupId: model.nextBackupId,
   }
 }
 
@@ -81,29 +90,6 @@ pub fn view(model : Model) -> ViewModel {
     cellSize: model.cellSize,
     goals: clone_vectors(model.goals),
     isComplete: model.isComplete,
-  }
-}
-
-///|
-/// Undo the last move if history is available
-pub fn undo(model : Model) -> Model {
-  let len = model.history.length()
-  if len == 0 {
-    model
-  } else {
-    let snapshot = model.history[len - 1]
-    let trimmed = copy_history_prefix(model.history, len - 1)
-    let boxes = clone_boxes(snapshot.boxes)
-    {
-      player: snapshot.player,
-      boxes,
-      hoveredBoxId: None,
-      gridSize: model.gridSize,
-      cellSize: model.cellSize,
-      history: trimmed,
-      goals: model.goals,
-      isComplete: goals_completed(boxes, model.goals),
-    }
   }
 }
 
@@ -126,6 +112,9 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           history,
           goals: self.goals,
           isComplete: self.isComplete,
+          backups: self.backups,
+          activeBackupId: self.activeBackupId,
+          nextBackupId: self.nextBackupId,
         }
       }
       Some(box) => {
@@ -150,6 +139,9 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
               history,
               goals: self.goals,
               isComplete: goals_completed(merged_boxes, self.goals),
+              backups: self.backups,
+              activeBackupId: self.activeBackupId,
+              nextBackupId: self.nextBackupId,
             }
           } else {
             self
@@ -160,15 +152,18 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           {
             player: nextPlayer,
             boxes: moved_boxes,
-            hoveredBoxId: None,
-            gridSize: self.gridSize,
-            cellSize: self.cellSize,
-            history,
-            goals: self.goals,
-            isComplete: goals_completed(moved_boxes, self.goals),
+              hoveredBoxId: None,
+              gridSize: self.gridSize,
+              cellSize: self.cellSize,
+              history,
+              goals: self.goals,
+              isComplete: goals_completed(moved_boxes, self.goals),
+              backups: self.backups,
+              activeBackupId: self.activeBackupId,
+              nextBackupId: self.nextBackupId,
+            }
           }
         }
-      }
     }
   }
 }
@@ -450,3 +445,4 @@ fn goals_completed(boxes : Array[Box], goals : Array[Vector]) -> Bool {
     matches == total
   }
 }
+
