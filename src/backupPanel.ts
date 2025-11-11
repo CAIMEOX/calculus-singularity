@@ -56,7 +56,7 @@ export function renderBackupPanel(
   list.innerHTML = "";
   if (items.length === 0) {
     const empty = document.createElement("div");
-    empty.textContent = "Press S to save.";
+    empty.textContent = "Press B to save.";
     empty.style.opacity = "0.65";
     list.appendChild(empty);
     return;

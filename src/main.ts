@@ -16,7 +16,7 @@ import {
   view as moonView,
 } from "../singularity/target/js/release/build/cs.js";
 
-type CoreModel = unknown;
+type CoreModel = "core-model-placeholder";
 
 interface BackupMeta {
   id: number;
@@ -184,21 +184,9 @@ function mount(app: PIXI.Application) {
   return { infoPanel: panel, backupList };
 }
 
-function normalizeViewModel(raw: any): ViewModel {
-  return {
-    player: raw.player,
-    boxes: raw.boxes ?? [],
-    hoveredBoxId: raw.hoveredBoxId ?? null,
-    gridSize: raw.gridSize,
-    cellSize: raw.cellSize,
-    goals: raw.goals ?? [],
-    isComplete: Boolean(raw.isComplete),
-  };
-}
-
 function main() {
   let coreModel: CoreModel = init_model();
-  let viewModel: ViewModel = normalizeViewModel(moonView(coreModel));
+  let viewModel: ViewModel = moonView(coreModel);
 
   const app = createPixiApplication(viewModel.gridSize * viewModel.cellSize);
   const { infoPanel, backupList } = mount(app);
@@ -216,7 +204,7 @@ function main() {
   };
 
   const render = () => {
-    viewModel = normalizeViewModel(moonView(coreModel));
+    viewModel = moonView(coreModel);
     renderScene(ctx, viewModel, handlers);
     updateInfoPanel(infoPanel, viewModel);
   };
@@ -278,7 +266,7 @@ function main() {
       render();
       return;
     }
-    if (e.key === "s" || e.key === "S") {
+    if (e.key === "b" || e.key === "B") {
       saveBackup();
       return;
     }

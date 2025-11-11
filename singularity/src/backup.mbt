@@ -6,8 +6,8 @@ pub fn undo(model : Model) -> Model {
     model
   } else {
     let snapshot = model.history[len - 1]
-    let trimmed = copy_history_prefix(model.history, len - 1)
-    let boxes = clone_boxes(snapshot.boxes)
+    let trimmed = model.history[:len - 1].to_array()
+    let boxes = snapshot.boxes.copy()
     {
       player: snapshot.player,
       boxes,
@@ -56,7 +56,7 @@ pub fn Model::save_backup(self : Model, timestamp : Int) -> Model {
 
 ///|
 pub fn Model::list_backups(self : Model) -> Array[BackupMeta] {
-  build_backup_meta_list(self.backups)
+  self.backups.map(backup_meta)
 }
 
 ///|
@@ -79,9 +79,9 @@ pub fn Model::restore_backup(self : Model, backupId : Int) -> Model {
 fn capture_backup_state(model : Model) -> BackupState {
   {
     player: model.player,
-    boxes: clone_boxes(model.boxes),
+    boxes: model.boxes.copy(),
     hoveredBoxId: model.hoveredBoxId,
-    history: clone_history(model.history),
+    history: model.history.copy(),
   }
 }
 
@@ -91,8 +91,8 @@ fn apply_backup_state(
   state : BackupState,
   activeId : Int,
 ) -> Model {
-  let boxes = clone_boxes(state.boxes)
-  let history = clone_history(state.history)
+  let boxes = state.boxes.copy()
+  let history = state.history.copy()
   {
     player: state.player,
     boxes,
@@ -132,7 +132,7 @@ fn append_backup_node(
 
 ///|
 fn add_child(node : BackupNode, childId : Int) -> BackupNode {
-  let children = clone_int_array(node.childIds)
+  let children = node.childIds.copy()
   children.push(childId)
   {
     id: node.id,
@@ -144,23 +144,11 @@ fn add_child(node : BackupNode, childId : Int) -> BackupNode {
 }
 
 ///|
-fn build_backup_meta_list(backups : Array[BackupNode]) -> Array[BackupMeta] {
-  let len = backups.length()
-  let metas = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    metas.push(backup_meta(backups[i]))
-    i += 1
-  }
-  metas
-}
-
-///|
 fn backup_meta(node : BackupNode) -> BackupMeta {
   {
     id: node.id,
     parentId: node.parentId,
-    childIds: clone_int_array(node.childIds),
+    childIds: node.childIds.copy(),
     timestamp: node.timestamp,
   }
 }
@@ -177,28 +165,4 @@ fn find_backup_node(backups : Array[BackupNode], id : Int) -> BackupNode? {
     i += 1
   }
   None
-}
-
-///|
-fn clone_history(history : Array[Snapshot]) -> Array[Snapshot] {
-  let len = history.length()
-  let copy = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    copy.push(history[i])
-    i += 1
-  }
-  copy
-}
-
-///|
-fn clone_int_array(values : Array[Int]) -> Array[Int] {
-  let len = values.length()
-  let copy = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    copy.push(values[i])
-    i += 1
-  }
-  copy
 }

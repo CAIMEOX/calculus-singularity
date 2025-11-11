@@ -88,7 +88,7 @@ pub fn view(model : Model) -> ViewModel {
     hoveredBoxId: model.hoveredBoxId,
     gridSize: model.gridSize,
     cellSize: model.cellSize,
-    goals: clone_vectors(model.goals),
+    goals: model.goals.copy(),
     isComplete: model.isComplete,
   }
 }
@@ -152,18 +152,18 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           {
             player: nextPlayer,
             boxes: moved_boxes,
-              hoveredBoxId: None,
-              gridSize: self.gridSize,
-              cellSize: self.cellSize,
-              history,
-              goals: self.goals,
-              isComplete: goals_completed(moved_boxes, self.goals),
-              backups: self.backups,
-              activeBackupId: self.activeBackupId,
-              nextBackupId: self.nextBackupId,
-            }
+            hoveredBoxId: None,
+            gridSize: self.gridSize,
+            cellSize: self.cellSize,
+            history,
+            goals: self.goals,
+            isComplete: goals_completed(moved_boxes, self.goals),
+            backups: self.backups,
+            activeBackupId: self.activeBackupId,
+            nextBackupId: self.nextBackupId,
           }
         }
+      }
     }
   }
 }
@@ -212,26 +212,7 @@ fn has_box(boxes : Array[Box], boxId : Int) -> Bool {
 
 ///|
 fn build_box_views(boxes : Array[Box]) -> Array[BoxView] {
-  let len = boxes.length()
-  let copy = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    copy.push(to_box_view(boxes[i]))
-    i += 1
-  }
-  copy
-}
-
-///|
-fn clone_boxes(boxes : Array[Box]) -> Array[Box] {
-  let len = boxes.length()
-  let copy = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    copy.push(boxes[i])
-    i += 1
-  }
-  copy
+  boxes.map(to_box_view)
 }
 
 ///|
@@ -240,35 +221,9 @@ fn append_snapshot(
   player : Vector,
   boxes : Array[Box],
 ) -> Array[Snapshot] {
-  let len = history.length()
-  let next = Array::new(capacity=len + 1)
-  let mut i = 0
-  while i < len {
-    next.push(history[i])
-    i += 1
-  }
-  next.push({ player, boxes: clone_boxes(boxes) })
+  let next = history.copy()
+  next.push({ player, boxes: boxes.copy() })
   next
-}
-
-///|
-fn copy_history_prefix(
-  history : Array[Snapshot],
-  new_len : Int,
-) -> Array[Snapshot] {
-  if new_len <= 0 {
-    Array::new()
-  } else {
-    let len = history.length()
-    let limit = if new_len < len { new_len } else { len }
-    let next = Array::new(capacity=limit)
-    let mut i = 0
-    while i < limit {
-      next.push(history[i])
-      i += 1
-    }
-    next
-  }
 }
 
 ///|
@@ -311,7 +266,7 @@ fn move_box_chain(
   let mut i = 0
   while i < len {
     let box = boxes[i]
-    if contains_id(chain, box.id) {
+    if chain.contains(box.id) {
       match box.kind {
         Int(value) =>
           moved.push({
@@ -330,34 +285,6 @@ fn move_box_chain(
 }
 
 ///|
-fn contains_id(ids : Array[Int], target : Int) -> Bool {
-  let len = ids.length()
-  let mut i = 0
-  while i < len {
-    if ids[i] == target {
-      break true
-    }
-    i += 1
-  } else {
-    false
-  }
-}
-
-///|
-fn find_box_by_id(boxes : Array[Box], id : Int) -> Box? {
-  let len = boxes.length()
-  let mut i = 0
-  while i < len {
-    let box = boxes[i]
-    if box.id == id {
-      return Some(box)
-    }
-    i += 1
-  }
-  None
-}
-
-///|
 fn merge_chain_if_possible(
   boxes : Array[Box],
   chain : Array[Int],
@@ -368,11 +295,11 @@ fn merge_chain_if_possible(
   }
   let first_id = chain[0]
   let second_id = chain[1]
-  let first_box = match find_box_by_id(boxes, first_id) {
+  let first_box = match box_by_id(boxes, first_id) {
     Some(box) => box
     None => return (boxes, false)
   }
-  let second_box = match find_box_by_id(boxes, second_id) {
+  let second_box = match box_by_id(boxes, second_id) {
     Some(box) => box
     None => return (boxes, false)
   }
@@ -411,38 +338,9 @@ fn to_box_view(box : Box) -> BoxView {
 }
 
 ///|
-fn clone_vectors(vecs : Array[Vector]) -> Array[Vector] {
-  let len = vecs.length()
-  let copy = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    copy.push(vecs[i])
-    i += 1
-  }
-  copy
-}
-
-///|
 fn goals_completed(boxes : Array[Box], goals : Array[Vector]) -> Bool {
-  let total = goals.length()
-  if total == 0 {
-    false
-  } else {
-    let mut matches = 0
-    let mut i = 0
-    while i < total {
-      let goal = goals[i]
-      match find_box_at_position(boxes, goal) {
-        Some(box) =>
-          match box.kind {
-            Int(_) => matches += 1
-            Wall => ()
-          }
-        None => ()
-      }
-      i += 1
-    }
-    matches == total
-  }
+  goals
+  .iter()
+  .all(goal => find_box_at_position(boxes, goal) is Some(box) &&
+    box.kind is Int(_))
 }
-

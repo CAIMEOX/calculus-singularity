@@ -9,18 +9,16 @@ export interface BoxStyle {
   symbolFont?: string;
 }
 
-function baseStyle(): BoxStyle {
-  return {
-    size: 40,
-    fillColor: 0x222233,
-    borderColor: 0x00ffff,
-    borderWidth: 1,
-    symbolFont: 'bold 24px "Courier New", Courier, monospace',
-  };
-}
+const baseStyle: BoxStyle = {
+  size: 40,
+  fillColor: 0x222233,
+  borderColor: 0x00ffff,
+  borderWidth: 1,
+  symbolFont: 'bold 24px "Courier New", Courier, monospace',
+};
 
 export function createBox(style: Partial<BoxStyle> = {}): PIXI.Container {
-  const finalStyle: BoxStyle = { ...baseStyle(), ...style };
+  const finalStyle: BoxStyle = { ...baseStyle, ...style };
   const boxContainer = new PIXI.Container();
   boxContainer.width = finalStyle.size;
   boxContainer.height = finalStyle.size;
@@ -32,7 +30,7 @@ export function createBox(style: Partial<BoxStyle> = {}): PIXI.Container {
   }
 
   graphics.beginFill(finalStyle.fillColor);
-  graphics.drawRoundedRect(1, 1, finalStyle.size-1, finalStyle.size-1, 1);
+  graphics.drawRoundedRect(1, 1, finalStyle.size - 1, finalStyle.size - 1, 1);
   graphics.endFill();
   boxContainer.addChild(graphics);
 
