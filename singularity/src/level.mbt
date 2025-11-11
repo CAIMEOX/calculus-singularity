@@ -95,5 +95,5 @@ pub fn load_from_json(json : String) -> Level raise LoadLevel {
 
 ///|
 pub fn save_to_json(level : Level) -> String {
-  level.to_json().to_string()
+  level.to_json().stringify()
 }
