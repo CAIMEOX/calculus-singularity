@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
-import { BoxStyle, createBox } from "./box";
+import { createBox } from "./box";
 import { createInfoPanel, updateInfoPanel } from "./infoPanel";
-import { BoxView, Vector2, ViewModel } from "./types";
+import { Vector2, ViewModel } from "./types";
 import {
   init_model,
   move_with_key,
@@ -12,170 +12,113 @@ import {
 
 type CoreModel = unknown;
 
+const COLORS = {
+  GRID: 0x444444,
+  PLAYER_FILL: 0x222233,
+  PLAYER_BORDER: 0x00ffff,
+  BOX_FILL: 0x332222,
+  BOX_BORDER: 0xffa500,
+};
+
 interface HoverHandlers {
-  onHover: (boxId: number) => void;
-  onLeave: () => void;
+  hover: (boxId: number) => void;
+  leave: () => void;
 }
 
-function getColors() {
-  return {
-    GRID: 0x444444,
-    PLAYER_FILL: 0x222233,
-    PLAYER_BORDER: 0x00ffff,
-    BOX_FILL: 0x332222,
-    BOX_BORDER: 0xffa500,
-  };
+interface RenderContext {
+  boxLayer: PIXI.Container;
+  player: PIXI.Container;
 }
 
-function calculatePixelPosition(cellSize: number, gridPos: Vector2): Vector2 {
-  return {
-    x: gridPos.x * cellSize,
-    y: gridPos.y * cellSize,
-  };
-}
+const toPixels = (cellSize: number, pos: Vector2) => ({
+  x: pos.x * cellSize,
+  y: pos.y * cellSize,
+});
 
-function createPlayerStyle(cellSize: number): BoxStyle {
-  const colors = getColors();
-  return {
-    size: cellSize,
-    fillColor: colors.PLAYER_FILL,
-    borderColor: colors.PLAYER_BORDER,
-    symbol: "λ",
-  };
-}
+const playerStyle = (cellSize: number) => ({
+  size: cellSize,
+  fillColor: COLORS.PLAYER_FILL,
+  borderColor: COLORS.PLAYER_BORDER,
+  symbol: "λ",
+});
 
-function createBoxStyle(cellSize: number): BoxStyle {
-  const colors = getColors();
-  return {
-    size: cellSize,
-    fillColor: colors.BOX_FILL,
-    borderColor: colors.BOX_BORDER,
-    symbol: "5",
-  };
-}
+const boxStyle = (cellSize: number, symbol?: string) => ({
+  size: cellSize,
+  fillColor: COLORS.BOX_FILL,
+  borderColor: COLORS.BOX_BORDER,
+  symbol: symbol ?? "5",
+});
 
-function calculateBoxOperations(boxes: BoxView[], existingBoxIds: Set<number>) {
-  const toCreate: BoxView[] = [];
-  const toUpdate: BoxView[] = [];
-  const toRemove: number[] = [];
-
-  const currentBoxIds = new Set<number>();
-
-  boxes.forEach((box) => {
-    currentBoxIds.add(box.id);
-    if (!existingBoxIds.has(box.id)) {
-      toCreate.push(box);
-    } else {
-      toUpdate.push(box);
-    }
-  });
-
-  for (const id of existingBoxIds) {
-    if (!currentBoxIds.has(id)) {
-      toRemove.push(id);
-    }
-  }
-
-  return { toCreate, toUpdate, toRemove };
-}
-
-function createGridGraphics(gridSize: number, cellSize: number): PIXI.Graphics {
-  const colors = getColors();
-  const screenSize = gridSize * cellSize;
-
-  const gridGfx = new PIXI.Graphics();
-  gridGfx.lineStyle(1, colors.GRID, 0.5);
+function drawGrid(stage: PIXI.Container, gridSize: number, cellSize: number) {
+  const gfx = new PIXI.Graphics();
+  gfx.lineStyle(1, COLORS.GRID, 0.5);
+  const size = gridSize * cellSize;
   for (let i = 0; i <= gridSize; i++) {
-    gridGfx.moveTo(i * cellSize, 0);
-    gridGfx.lineTo(i * cellSize, screenSize);
-    gridGfx.moveTo(0, i * cellSize);
-    gridGfx.lineTo(screenSize, i * cellSize);
+    gfx.moveTo(i * cellSize, 0);
+    gfx.lineTo(i * cellSize, size);
+    gfx.moveTo(0, i * cellSize);
+    gfx.lineTo(size, i * cellSize);
   }
-  return gridGfx;
+  stage.addChild(gfx);
 }
 
-function createPlayerVisual(cellSize: number): PIXI.Container {
-  return createBox(createPlayerStyle(cellSize));
-}
-
-function createBoxVisual(cellSize: number): PIXI.Container {
-  return createBox(createBoxStyle(cellSize));
-}
-
-function mutatePlayerPosition(
-  playerVisual: PIXI.Container,
-  model: ViewModel
-): void {
-  const pixelPos = calculatePixelPosition(model.cellSize, model.player);
-  playerVisual.x = pixelPos.x;
-  playerVisual.y = pixelPos.y;
-}
-
-function mutateBoxPositions(
-  model: ViewModel,
-  boxVisuals: Map<number, PIXI.Container>,
-  stage: PIXI.Container
-): void {
-  const operations = calculateBoxOperations(model.boxes, new Set(boxVisuals.keys()));
-
-  operations.toCreate.forEach((box) => {
-    const boxVisual = createBoxVisual(model.cellSize);
-    const pixelPos = calculatePixelPosition(model.cellSize, box.pos);
-    boxVisual.x = pixelPos.x;
-    boxVisual.y = pixelPos.y;
-    boxVisuals.set(box.id, boxVisual);
-    stage.addChild(boxVisual);
-  });
-
-  operations.toUpdate.forEach((box) => {
-    const boxVisual = boxVisuals.get(box.id);
-    if (boxVisual) {
-      const pixelPos = calculatePixelPosition(model.cellSize, box.pos);
-      boxVisual.x = pixelPos.x;
-      boxVisual.y = pixelPos.y;
-    }
-  });
-
-  operations.toRemove.forEach((id) => {
-    const visual = boxVisuals.get(id);
-    if (visual) {
-      visual.destroy();
-      boxVisuals.delete(id);
-    }
-  });
-}
-
-function mutateHoverEvents(
-  boxVisuals: Map<number, PIXI.Container>,
+function renderBoxes(
+  layer: PIXI.Container,
+  view: ViewModel,
   handlers: HoverHandlers
-): void {
-  for (const [id, visual] of boxVisuals.entries()) {
-    if (!(visual as any).hasHoverListener) {
-      visual.interactive = true;
-      visual.on("mouseover", () => handlers.onHover(id));
-      visual.on("mouseout", () => handlers.onLeave());
-      (visual as any).hasHoverListener = true;
-    }
-  }
+) {
+  layer.removeChildren().forEach((child) => child.destroy());
+  view.boxes.forEach((box) => {
+    const visual = createBox(boxStyle(view.cellSize, box.symbol));
+    const pos = toPixels(view.cellSize, box.pos);
+    visual.x = pos.x;
+    visual.y = pos.y;
+    visual.interactive = true;
+    visual.on("mouseover", () => handlers.hover(box.id));
+    visual.on("mouseout", handlers.leave);
+    layer.addChild(visual);
+  });
 }
 
-function createPixiApplication(screenSize: number): PIXI.Application {
+function renderPlayer(player: PIXI.Container, view: ViewModel) {
+  const pos = toPixels(view.cellSize, view.player);
+  player.x = pos.x;
+  player.y = pos.y;
+}
+
+function renderScene(
+  ctx: RenderContext,
+  view: ViewModel,
+  handlers: HoverHandlers
+) {
+  renderPlayer(ctx.player, view);
+  renderBoxes(ctx.boxLayer, view, handlers);
+}
+
+function createRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
+  drawGrid(app.stage, view.gridSize, view.cellSize);
+  const boxLayer = new PIXI.Container();
+  const player = createBox(playerStyle(view.cellSize));
+  app.stage.addChild(boxLayer);
+  app.stage.addChild(player);
+  return { boxLayer, player };
+}
+
+function createPixiApplication(side: number) {
   return new PIXI.Application({
-    width: screenSize,
-    height: screenSize,
+    width: side,
+    height: side,
     antialias: true,
     backgroundColor: 0x1a1a1a,
   });
 }
 
-function setupGameContainer(app: PIXI.Application): HTMLElement {
-  const gameContainer = document.getElementById("game-container")!;
-  gameContainer.appendChild(app.view as HTMLCanvasElement);
-
-  const infoPanelElement = createInfoPanel();
-  gameContainer.appendChild(infoPanelElement);
-
-  return infoPanelElement;
+function mount(app: PIXI.Application) {
+  const container = document.getElementById("game-container")!;
+  container.appendChild(app.view as HTMLCanvasElement);
+  const panel = createInfoPanel();
+  container.appendChild(panel);
+  return panel;
 }
 
 function normalizeViewModel(raw: any): ViewModel {
@@ -188,76 +131,39 @@ function normalizeViewModel(raw: any): ViewModel {
   };
 }
 
-function createRenderer(
-  app: PIXI.Application,
-  gridSize: number,
-  cellSize: number
-) {
-  const gridContainer = new PIXI.Container();
-  const boxContainer = new PIXI.Container();
-  const playerContainer = new PIXI.Container();
-  app.stage.addChild(gridContainer, boxContainer, playerContainer);
-
-  const gridGfx = createGridGraphics(gridSize, cellSize);
-  gridContainer.addChild(gridGfx);
-
-  const playerVisual = createPlayerVisual(cellSize);
-  playerContainer.addChild(playerVisual);
-
-  const boxVisuals = new Map<number, PIXI.Container>();
-
-  const renderView = (model: ViewModel) => {
-    mutatePlayerPosition(playerVisual, model);
-    mutateBoxPositions(model, boxVisuals, boxContainer);
-  };
-
-  const ensureHoverListeners = (handlers: HoverHandlers) => {
-    mutateHoverEvents(boxVisuals, handlers);
-  };
-
-  return {
-    renderView,
-    ensureHoverListeners,
-    getBoxVisuals: () => boxVisuals,
-  };
-}
-
 function main() {
   let coreModel: CoreModel = init_model();
-  let currentView: ViewModel = normalizeViewModel(moonView(coreModel));
+  let viewModel: ViewModel = normalizeViewModel(moonView(coreModel));
 
-  const screenSize = currentView.gridSize * currentView.cellSize;
-  const app = createPixiApplication(screenSize);
-  const infoPanelElement = setupGameContainer(app);
-  const renderer = createRenderer(app, currentView.gridSize, currentView.cellSize);
+  const app = createPixiApplication(viewModel.gridSize * viewModel.cellSize);
+  const infoPanel = mount(app);
+  const ctx = createRenderer(app, viewModel);
 
-  const hoverHandlers: HoverHandlers = {
-    onHover: (boxId: number) => {
+  const handlers: HoverHandlers = {
+    hover: (boxId) => {
       coreModel = hover_box(coreModel, boxId);
       render();
     },
-    onLeave: () => {
+    leave: () => {
       coreModel = clear_hover(coreModel);
       render();
     },
   };
 
   const render = () => {
-    currentView = normalizeViewModel(moonView(coreModel));
-    renderer.renderView(currentView);
-    updateInfoPanel(infoPanelElement, currentView);
-    requestAnimationFrame(() => renderer.ensureHoverListeners(hoverHandlers));
+    viewModel = normalizeViewModel(moonView(coreModel));
+    renderScene(ctx, viewModel, handlers);
+    updateInfoPanel(infoPanel, viewModel);
   };
 
-  const keyboardHandler = (e: KeyboardEvent) => {
-    const nextModel = move_with_key(coreModel, e.key);
-    if (nextModel !== coreModel) {
-      coreModel = nextModel;
+  window.addEventListener("keydown", (e) => {
+    const next = move_with_key(coreModel, e.key);
+    if (next !== coreModel) {
+      coreModel = next;
       render();
     }
-  };
+  });
 
-  window.addEventListener("keydown", keyboardHandler);
   render();
 }
 
