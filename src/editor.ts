@@ -33,6 +33,7 @@ interface ToolDefinition {
 }
 
 const TOOL_DATA = "application/x-logic-tool";
+const CELL_DATA = "application/x-logic-cell";
 const TOOLBAR: ToolDefinition[] = [
   { id: "player", label: "玩家", description: "将 λ 放置在网格上" },
   { id: "goal", label: "Goal", description: "放置一个命题目标" },
@@ -570,6 +571,11 @@ function renderGrid() {
       });
       cell.addEventListener("drop", (event) => {
         event.preventDefault();
+        const entityData = event.dataTransfer?.getData(CELL_DATA);
+        if (entityData) {
+          moveEntity(JSON.parse(entityData), x, y);
+          return;
+        }
         const data = event.dataTransfer?.getData(TOOL_DATA);
         if (!data) return;
         const tool = data as ToolId;
@@ -604,6 +610,14 @@ function renderGrid() {
           style.symbol && style.symbol.trim().length
             ? style.symbol
             : kindToLabel(box.kind);
+        boxNode.setAttribute("draggable", "true");
+        boxNode.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData(
+            CELL_DATA,
+            JSON.stringify({ type: "box", x, y })
+          );
+          event.dataTransfer?.setDragImage(boxNode, style.size / 2, style.size / 2);
+        });
         cell.appendChild(boxNode);
       }
 
@@ -612,6 +626,14 @@ function renderGrid() {
         const goalNode = document.createElement("div");
         goalNode.className = "editor-goal";
         goalNode.textContent = kindToLabel(goal.prop);
+        goalNode.setAttribute("draggable", "true");
+        goalNode.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData(
+            CELL_DATA,
+            JSON.stringify({ type: "goal", x, y })
+          );
+          event.dataTransfer?.setDragImage(goalNode, goalNode.clientWidth / 2, goalNode.clientHeight / 2);
+        });
         cell.appendChild(goalNode);
       }
 
@@ -619,6 +641,14 @@ function renderGrid() {
         const playerNode = document.createElement("div");
         playerNode.className = "editor-player";
         playerNode.textContent = "λ";
+        playerNode.setAttribute("draggable", "true");
+        playerNode.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData(
+            CELL_DATA,
+            JSON.stringify({ type: "player", x, y })
+          );
+          event.dataTransfer?.setDragImage(playerNode, 10, 10);
+        });
         cell.appendChild(playerNode);
       }
 
@@ -904,6 +934,76 @@ function editSelectedCell() {
   setStatus("该格没有可编辑的节点", true);
 }
 
+function isCellEmpty(x: number, y: number) {
+  return !boxAt(x, y) && !goalAt(x, y) && !(level.player.x === x && level.player.y === y);
+}
+
+interface DragPayload {
+  type: "box" | "goal" | "player";
+  x: number;
+  y: number;
+}
+
+function moveEntity(payload: DragPayload, targetX: number, targetY: number) {
+  if (payload.x === targetX && payload.y === targetY) {
+    setSelectedCell(targetX, targetY);
+    return;
+  }
+  if (!isCellEmpty(targetX, targetY)) {
+    setStatus("目标格已有内容，无法移动", true);
+    return;
+  }
+  switch (payload.type) {
+    case "box": {
+      const box = boxAt(payload.x, payload.y);
+      if (!box) {
+        setStatus("未找到该方块", true);
+        return;
+      }
+      pushHistory();
+      box.pos = { x: targetX, y: targetY };
+      break;
+    }
+    case "goal": {
+      const goal = goalAt(payload.x, payload.y);
+      if (!goal) {
+        setStatus("未找到该 Goal", true);
+        return;
+      }
+      pushHistory();
+      goal.pos = { x: targetX, y: targetY };
+      break;
+    }
+    case "player":
+      pushHistory();
+      level.player = { x: targetX, y: targetY };
+      break;
+    default:
+      setStatus("无法移动该类型", true);
+      return;
+  }
+  setSelectedCell(targetX, targetY);
+  renderAll();
+  setStatus("已移动节点");
+}
+
+function placeWallShortcut() {
+  if (!selectedCell) {
+    setStatus("请先选择一个网格", true);
+    return;
+  }
+  const { x, y } = selectedCell;
+  if (!isCellEmpty(x, y)) {
+    setStatus("该网格已有内容，无法放置 Wall", true);
+    return;
+  }
+  pushHistory();
+  const wall = make_wall(nextBoxId++, x, y) as LevelBox;
+  level.boxes.push(wall);
+  setStatus("已添加 Wall");
+  renderAll();
+}
+
 function isTypingTarget(el: Element | null) {
   return (
     el instanceof HTMLInputElement ||
@@ -929,6 +1029,11 @@ window.addEventListener("keydown", (event) => {
   if (event.key === "e" || event.key === "E") {
     event.preventDefault();
     editSelectedCell();
+    return;
+  }
+  if (event.key === "w" || event.key === "W") {
+    event.preventDefault();
+    placeWallShortcut();
   }
 });
 
