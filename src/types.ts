@@ -47,3 +47,21 @@ export interface LevelInfo {
   gridHeight: number;
   cellSize: number;
 }
+
+export interface LevelBox {
+  id: number;
+  pos: Vector2;
+  kind: any;
+}
+
+export interface LevelGoal {
+  pos: Vector2;
+  prop: any;
+}
+
+export interface Level {
+  info: LevelInfo;
+  player: Vector2;
+  boxes: LevelBox[];
+  goals: LevelGoal[];
+}

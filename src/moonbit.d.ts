@@ -13,4 +13,37 @@ declare module "../singularity/target/js/release/build/cs.js" {
   export function generate_panel_content(model: unknown): string;
   export function level_infos(): any;
   export function style_for_kind(kind: unknown, cellSize: number): any;
+  export function load_from_json(json: string): any;
+  export function save_to_json(level: unknown): string;
+  export function make_wall(id: number, x: number, y: number): any;
+  export function make_prop_box(
+    id: number,
+    x: number,
+    y: number,
+    label: string
+  ): any;
+  export function make_implication_box(
+    id: number,
+    x: number,
+    y: number,
+    premise: string,
+    conclusion: string
+  ): any;
+  export function make_and_box(
+    id: number,
+    x: number,
+    y: number,
+    left: string,
+    right: string
+  ): any;
+  export function make_pi1_box(id: number, x: number, y: number): any;
+  export function make_pi2_box(id: number, x: number, y: number): any;
+  export function make_goal(x: number, y: number, prop: string): any;
+  export function make_negation_box(id: number, x: number, y: number): any;
+  export function make_negation_box_with_inner(
+    id: number,
+    x: number,
+    y: number,
+    inner: string
+  ): any;
 }

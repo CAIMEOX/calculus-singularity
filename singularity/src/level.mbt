@@ -15,21 +15,20 @@ pub struct Level {
   goals : Array[Goal]
 } derive(@json.FromJson, ToJson)
 
-
 // Level Builders DSL
 
 ///|
-fn make_wall(id : Int, x : Int, y : Int) -> Box {
+pub fn make_wall(id : Int, x : Int, y : Int) -> Box {
   { id, pos: { x, y }, kind: Wall }
 }
 
 ///|
-fn make_prop_box(id : Int, x : Int, y : Int, label : String) -> Box {
+pub fn make_prop_box(id : Int, x : Int, y : Int, label : String) -> Box {
   { id, pos: { x, y }, kind: Prop(label) }
 }
 
 ///|
-fn make_implication_box(
+pub fn make_implication_box(
   id : Int,
   x : Int,
   y : Int,
@@ -40,7 +39,7 @@ fn make_implication_box(
 }
 
 ///|
-fn make_and_box(
+pub fn make_and_box(
   id : Int,
   x : Int,
   y : Int,
@@ -51,31 +50,50 @@ fn make_and_box(
 }
 
 ///|
-fn make_pi1_box(id : Int, x : Int, y : Int) -> Box {
+pub fn make_pi1_box(id : Int, x : Int, y : Int) -> Box {
   { id, pos: { x, y }, kind: Fst }
 }
 
 ///|
-fn make_pi2_box(id : Int, x : Int, y : Int) -> Box {
+pub fn make_pi2_box(id : Int, x : Int, y : Int) -> Box {
   { id, pos: { x, y }, kind: Snd }
 }
 
 ///|
-fn make_goal(x : Int, y : Int, prop : String) -> Goal {
+pub fn make_goal(x : Int, y : Int, prop : String) -> Goal {
   { pos: { x, y }, prop: Prop(prop) }
 }
 
 ///|
-fn make_negation_box(id : Int, x : Int, y : Int) -> Box {
+pub fn make_negation_box(id : Int, x : Int, y : Int) -> Box {
   { id, pos: { x, y }, kind: Neg(None) }
 }
 
 ///|
-fn make_negation_box_with_inner(
+pub fn make_negation_box_with_inner(
   id : Int,
   x : Int,
   y : Int,
   inner : String,
 ) -> Box {
   { id, pos: { x, y }, kind: Neg(Some(Prop(inner))) }
+}
+
+///|
+pub suberror LoadLevel {
+  InvalidJson(@json.ParseError)
+  InvalidDataFormat(@json.JsonDecodeError)
+}
+
+///|
+pub fn load_from_json(json : String) -> Level raise LoadLevel {
+  let j = @json.parse(json) catch { e => raise InvalidJson(e) }
+  @json.from_json(j) catch {
+    e => raise InvalidDataFormat(e)
+  }
+}
+
+///|
+pub fn save_to_json(level : Level) -> String {
+  level.to_json().to_string()
 }

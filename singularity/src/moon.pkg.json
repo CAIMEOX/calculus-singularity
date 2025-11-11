@@ -15,7 +15,18 @@
                 "view",
                 "generate_panel_content",
                 "level_infos",
-                "style_for_kind"
+                "style_for_kind",
+                "load_from_json",
+                "save_to_json",
+                "make_wall",
+                "make_prop_box",
+                "make_implication_box",
+                "make_and_box",
+                "make_pi1_box",
+                "make_pi2_box",
+                "make_goal",
+                "make_negation_box",
+                "make_negation_box_with_inner"
             ]
         }
     }
