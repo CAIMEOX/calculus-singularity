@@ -6,7 +6,8 @@ export interface Vector2 {
 export interface BoxView {
   id: number;
   pos: Vector2;
-  symbol?: string;
+  kind: "wall" | "int";
+  value?: number | null;
 }
 
 export interface ViewModel {
@@ -15,6 +16,8 @@ export interface ViewModel {
   hoveredBoxId: number | null | undefined;
   gridSize: number;
   cellSize: number;
+  goals: Vector2[];
+  isComplete: boolean;
 }
 
 export type Box = BoxView;

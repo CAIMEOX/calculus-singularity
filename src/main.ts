@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import { createBox } from "./box";
 import { createInfoPanel, updateInfoPanel } from "./infoPanel";
-import { Vector2, ViewModel } from "./types";
+import { Vector2, ViewModel, BoxView } from "./types";
 import {
   init_model,
   move_with_key,
@@ -19,6 +19,10 @@ const COLORS = {
   PLAYER_BORDER: 0x00ffff,
   BOX_FILL: 0x332222,
   BOX_BORDER: 0xffa500,
+  WALL_FILL: 0x2c2c2c,
+  WALL_BORDER: 0x0f0f0f,
+  GOAL: 0x2ef5a0,
+  GOAL_COMPLETE: 0xf5d142,
 };
 
 interface HoverHandlers {
@@ -27,6 +31,7 @@ interface HoverHandlers {
 }
 
 interface RenderContext {
+  goalLayer: PIXI.Container;
   boxLayer: PIXI.Container;
   player: PIXI.Container;
 }
@@ -43,12 +48,24 @@ const playerStyle = (cellSize: number) => ({
   symbol: "λ",
 });
 
-const boxStyle = (cellSize: number, symbol?: string) => ({
-  size: cellSize,
-  fillColor: COLORS.BOX_FILL,
-  borderColor: COLORS.BOX_BORDER,
-  symbol: symbol ?? "5",
-});
+const boxStyleFor = (cellSize: number, box: BoxView) => {
+  if (box.kind === "wall") {
+    return {
+      size: cellSize,
+      fillColor: COLORS.WALL_FILL,
+      borderColor: COLORS.WALL_BORDER,
+      symbol: "",
+    };
+  }
+  const label =
+    box.value !== undefined && box.value !== null ? `${box.value}` : "∫";
+  return {
+    size: cellSize,
+    fillColor: COLORS.BOX_FILL,
+    borderColor: COLORS.BOX_BORDER,
+    symbol: label,
+  };
+};
 
 function drawGrid(stage: PIXI.Container, gridSize: number, cellSize: number) {
   const gfx = new PIXI.Graphics();
@@ -70,7 +87,7 @@ function renderBoxes(
 ) {
   layer.removeChildren().forEach((child) => child.destroy());
   view.boxes.forEach((box) => {
-    const visual = createBox(boxStyle(view.cellSize, box.symbol));
+    const visual = createBox(boxStyleFor(view.cellSize, box));
     const pos = toPixels(view.cellSize, box.pos);
     visual.x = pos.x;
     visual.y = pos.y;
@@ -87,22 +104,40 @@ function renderPlayer(player: PIXI.Container, view: ViewModel) {
   player.y = pos.y;
 }
 
+function renderGoals(layer: PIXI.Container, view: ViewModel) {
+  layer.removeChildren().forEach((child) => child.destroy(true));
+  view.goals.forEach((goal) => {
+    const gfx = new PIXI.Graphics();
+    const color = view.isComplete ? COLORS.GOAL_COMPLETE : COLORS.GOAL;
+    gfx.beginFill(color, view.isComplete ? 0.8 : 0.4);
+    const offset = view.cellSize * 0.15;
+    const size = view.cellSize * 0.7;
+    const pixel = toPixels(view.cellSize, goal);
+    gfx.drawRoundedRect(pixel.x + offset, pixel.y + offset, size, size, 6);
+    gfx.endFill();
+    layer.addChild(gfx);
+  });
+}
+
 function renderScene(
   ctx: RenderContext,
   view: ViewModel,
   handlers: HoverHandlers
 ) {
+  renderGoals(ctx.goalLayer, view);
   renderPlayer(ctx.player, view);
   renderBoxes(ctx.boxLayer, view, handlers);
 }
 
 function createRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
   drawGrid(app.stage, view.gridSize, view.cellSize);
+  const goalLayer = new PIXI.Container();
   const boxLayer = new PIXI.Container();
   const player = createBox(playerStyle(view.cellSize));
+  app.stage.addChild(goalLayer);
   app.stage.addChild(boxLayer);
   app.stage.addChild(player);
-  return { boxLayer, player };
+  return { goalLayer, boxLayer, player };
 }
 
 function createPixiApplication(side: number) {
@@ -128,9 +163,11 @@ function normalizeViewModel(raw: any): ViewModel {
   return {
     player: raw.player,
     boxes: raw.boxes ?? [],
-    hoveredBoxId: raw.hoveredBoxId,
+    hoveredBoxId: raw.hoveredBoxId ?? null,
     gridSize: raw.gridSize,
     cellSize: raw.cellSize,
+    goals: raw.goals ?? [],
+    isComplete: Boolean(raw.isComplete),
   };
 }
 

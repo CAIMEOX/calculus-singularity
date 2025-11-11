@@ -8,7 +8,13 @@ pub struct Vector {
 pub struct Box {
   id : Int
   pos : Vector
-  symbol : String
+  kind : BoxType
+}
+
+///| Supported box kinds
+pub enum BoxType {
+  Wall
+  Int(Int)
 }
 
 ///| Internal application state handled entirely inside Moonbit
@@ -18,7 +24,9 @@ pub struct Model {
   hoveredBoxId : Int?
   gridSize : Int
   cellSize : Int
+  goals : Array[Vector]
   history : Array[Snapshot]
+  isComplete : Bool
 }
 
 ///| Snapshot used for undo
@@ -30,10 +38,20 @@ pub struct Snapshot {
 ///| Render-ready snapshot returned to the TypeScript renderer
 pub struct ViewModel {
   player : Vector
-  boxes : Array[Box]
+  boxes : Array[BoxView]
   hoveredBoxId : Int?
   gridSize : Int
   cellSize : Int
+  goals : Array[Vector]
+  isComplete : Bool
+}
+
+///| Shape sent to the renderer for each box
+pub struct BoxView {
+  id : Int
+  pos : Vector
+  kind : String
+  value : Int?
 }
 
 ///| Supported move directions for the Elm style update loop
@@ -57,13 +75,17 @@ fn Direction::from_key(key : String) -> Direction? {
 
 ///| Initialize the core model
 pub fn init_model() -> Model {
+  let boxes = seed_boxes()
+  let goals = seed_goals()
   {
     player: { x: 1, y: 1 },
-    boxes: seed_boxes(),
+    boxes,
     hoveredBoxId: None,
     gridSize: default_grid_size(),
     cellSize: default_cell_size(),
+    goals,
     history: Array::new(),
+    isComplete: goals_completed(boxes, goals),
   }
 }
 
@@ -85,6 +107,8 @@ pub fn hover_box(model : Model, boxId : Int) -> Model {
       gridSize: model.gridSize,
       cellSize: model.cellSize,
       history: model.history,
+      goals: model.goals,
+      isComplete: model.isComplete,
     }
   } else {
     model
@@ -100,6 +124,8 @@ pub fn clear_hover(model : Model) -> Model {
     gridSize: model.gridSize,
     cellSize: model.cellSize,
     history: model.history,
+    goals: model.goals,
+    isComplete: model.isComplete,
   }
 }
 
@@ -107,10 +133,12 @@ pub fn clear_hover(model : Model) -> Model {
 pub fn view(model : Model) -> ViewModel {
   {
     player: model.player,
-    boxes: snapshot_boxes(model.boxes),
+    boxes: build_box_views(model.boxes),
     hoveredBoxId: model.hoveredBoxId,
     gridSize: model.gridSize,
     cellSize: model.cellSize,
+    goals: clone_vectors(model.goals),
+    isComplete: model.isComplete,
   }
 }
 
@@ -122,13 +150,16 @@ pub fn undo(model : Model) -> Model {
   } else {
     let snapshot = model.history[len - 1]
     let trimmed = copy_history_prefix(model.history, len - 1)
+    let boxes = clone_boxes(snapshot.boxes)
     {
       player: snapshot.player,
-      boxes: clone_boxes(snapshot.boxes),
+      boxes,
       hoveredBoxId: None,
       gridSize: model.gridSize,
       cellSize: model.cellSize,
       history: trimmed,
+      goals: model.goals,
+      isComplete: goals_completed(boxes, model.goals),
     }
   }
 }
@@ -149,21 +180,26 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           gridSize: self.gridSize,
           cellSize: self.cellSize,
           history,
+          goals: self.goals,
+          isComplete: self.isComplete,
         }
       }
       Some(box) => {
-        let (chain, landing) = collect_box_chain(self.boxes, box.pos, direction)
-        if !is_in_bounds(landing, self.gridSize) {
+        let (chain, landing, blocked) = collect_box_chain(self.boxes, box.pos, direction)
+        if blocked || !is_in_bounds(landing, self.gridSize) {
           self
         } else {
           let history = append_snapshot(self.history, self.player, self.boxes)
+          let moved_boxes = move_box_chain(self.boxes, chain, direction)
           {
             player: nextPlayer,
-            boxes: move_box_chain(self.boxes, chain, direction),
+            boxes: moved_boxes,
             hoveredBoxId: None,
             gridSize: self.gridSize,
             cellSize: self.cellSize,
             history,
+            goals: self.goals,
+            isComplete: goals_completed(moved_boxes, self.goals),
           }
         }
       }
@@ -209,7 +245,18 @@ fn has_box(boxes : Array[Box], boxId : Int) -> Bool {
   false
 }
 
-fn snapshot_boxes(boxes : Array[Box]) -> Array[Box] {
+fn build_box_views(boxes : Array[Box]) -> Array[BoxView] {
+  let len = boxes.length()
+  let copy = Array::new(capacity=len)
+  let mut i = 0
+  while i < len {
+    copy.push(to_box_view(boxes[i]))
+    i += 1
+  }
+  copy
+}
+
+fn clone_boxes(boxes : Array[Box]) -> Array[Box] {
   let len = boxes.length()
   let copy = Array::new(capacity=len)
   let mut i = 0
@@ -218,10 +265,6 @@ fn snapshot_boxes(boxes : Array[Box]) -> Array[Box] {
     i += 1
   }
   copy
-}
-
-fn clone_boxes(boxes : Array[Box]) -> Array[Box] {
-  snapshot_boxes(boxes)
 }
 
 fn append_snapshot(history : Array[Snapshot], player : Vector, boxes : Array[Box]) -> Array[Snapshot] {
@@ -256,19 +299,24 @@ fn same_position(lhs : Vector, rhs : Vector) -> Bool {
   lhs.x == rhs.x && lhs.y == rhs.y
 }
 
-fn collect_box_chain(boxes : Array[Box], startPos : Vector, direction : Direction) -> (Array[Int], Vector) {
+fn collect_box_chain(boxes : Array[Box], startPos : Vector, direction : Direction) -> (Array[Int], Vector, Bool) {
   let chain : Array[Int] = Array::new()
-  let landing = loop startPos {
-    pos =>
-      match find_box_at_position(boxes, pos) {
-        Some(b) => {
-          chain.push(b.id)
-          continue calculate_next_position(pos, direction)
+  let (landing, blocked) =
+    loop startPos {
+      cursor =>
+        match find_box_at_position(boxes, cursor) {
+          Some(b) =>
+            match b.kind {
+              Wall => break (cursor, true)
+              Int(_) => {
+                chain.push(b.id)
+                continue calculate_next_position(cursor, direction)
+              }
+            }
+          None => break (cursor, false)
         }
-        None => pos
-      }
-  }
-  (chain, landing)
+    }
+  (chain, landing, blocked)
 }
 
 fn move_box_chain(boxes : Array[Box], chain : Array[Int], direction : Direction) -> Array[Box] {
@@ -278,7 +326,15 @@ fn move_box_chain(boxes : Array[Box], chain : Array[Int], direction : Direction)
   while i < len {
     let box = boxes[i]
     if contains_id(chain, box.id) {
-      moved.push({ id: box.id, pos: calculate_next_position(box.pos, direction), symbol: box.symbol })
+      match box.kind {
+        Int(value) =>
+          moved.push({
+            id: box.id,
+            pos: calculate_next_position(box.pos, direction),
+            kind: Int(value),
+          })
+        Wall => moved.push(box)
+      }
     } else {
       moved.push(box)
     }
@@ -299,17 +355,55 @@ fn contains_id(ids : Array[Int], target : Int) -> Bool {
   false
 }
 
-fn seed_boxes() -> Array[Box] {
-  let boxes : Array[Box] = Array::new(capacity=2)
-  boxes.push({ id: 1, pos: { x: 3, y: 3 }, symbol: "5" })
-  boxes.push({ id: 2, pos: { x: 5, y: 5 }, symbol: "A" })
-  boxes
+fn to_box_view(box : Box) -> BoxView {
+  match box.kind {
+    Wall =>
+      {
+        id: box.id,
+        pos: box.pos,
+        kind: "wall",
+        value: None,
+      }
+    Int(value) =>
+      {
+        id: box.id,
+        pos: box.pos,
+        kind: "int",
+        value: Some(value),
+      }
+  }
 }
 
-fn default_grid_size() -> Int {
-  10
+fn clone_vectors(vecs : Array[Vector]) -> Array[Vector] {
+  let len = vecs.length()
+  let copy = Array::new(capacity=len)
+  let mut i = 0
+  while i < len {
+    copy.push(vecs[i])
+    i += 1
+  }
+  copy
 }
 
-fn default_cell_size() -> Int {
-  50
+fn goals_completed(boxes : Array[Box], goals : Array[Vector]) -> Bool {
+  let total = goals.length()
+  if total == 0 {
+    false
+  } else {
+    let mut matches = 0
+    let mut i = 0
+    while i < total {
+      let goal = goals[i]
+      match find_box_at_position(boxes, goal) {
+        Some(box) =>
+          match box.kind {
+            Int(_) => matches += 1
+            Wall => ()
+          }
+        None => ()
+      }
+      i += 1
+    }
+    matches == total
+  }
 }

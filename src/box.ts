@@ -11,10 +11,10 @@ export interface BoxStyle {
 
 function baseStyle(): BoxStyle {
   return {
-    size: 50,
+    size: 40,
     fillColor: 0x222233,
     borderColor: 0x00ffff,
-    borderWidth: 2,
+    borderWidth: 1,
     symbolFont: 'bold 24px "Courier New", Courier, monospace',
   };
 }
@@ -32,7 +32,7 @@ export function createBox(style: Partial<BoxStyle> = {}): PIXI.Container {
   }
 
   graphics.beginFill(finalStyle.fillColor);
-  graphics.drawRect(0, 0, finalStyle.size, finalStyle.size);
+  graphics.drawRoundedRect(1, 1, finalStyle.size-1, finalStyle.size-1, 1);
   graphics.endFill();
   boxContainer.addChild(graphics);
 

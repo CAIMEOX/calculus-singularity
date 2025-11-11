@@ -1,4 +1,4 @@
-import { ViewModel, BoxView } from "./types";
+import { ViewModel, BoxView, Vector2 } from "./types";
 
 function getPanelStyle() {
   return {
@@ -32,12 +32,16 @@ export function createInfoPanel(): HTMLElement {
   return panel;
 }
 
-function getBoxInfo(box: BoxView): string[] {
-  const symbol = box.symbol ?? "?";
+function getBoxInfo(box: BoxView, onGoal: boolean): string[] {
+  const kind =
+    box.kind === "wall"
+      ? "Wall"
+      : `Int${box.value !== undefined ? `(${box.value})` : ""}`;
   return [
     `ID: ${box.id}`,
     `Position: (${box.pos.x}, ${box.pos.y})`,
-    `Symbol: ${symbol}`,
+    `Type: ${kind}`,
+    `On Goal: ${onGoal ? "Yes" : "No"}`,
   ];
 }
 
@@ -45,21 +49,34 @@ function getHoverStyle(isHovered: boolean): string {
   return isHovered ? "font-weight: bold; color: #00FFFF;" : "";
 }
 
-function generateBoxInfoHTML(box: BoxView, isHovered: boolean): string {
-  const info = getBoxInfo(box);
+function isOnGoal(box: BoxView, goals: Vector2[]): boolean {
+  return goals.some((goal) => goal.x === box.pos.x && goal.y === box.pos.y);
+}
+
+function generateBoxInfoHTML(
+  box: BoxView,
+  isHovered: boolean,
+  onGoal: boolean
+): string {
+  const info = getBoxInfo(box, onGoal);
   const style = getHoverStyle(isHovered);
   return `<div style="${style}">${info.join("<br>")}</div>`;
 }
 
 function generatePanelContent(model: ViewModel): string {
   let content = "<h3>INFO</h3><hr>";
+  content += `<p>Status: ${
+    model.isComplete ? "🎉 Completed" : "In progress"
+  }</p>`;
+  content += `<p>Goals: ${model.goals.length}</p><hr>`;
 
   if (model.boxes.length === 0) {
     content += "<p>No boxes in this level.</p>";
   } else {
     model.boxes.forEach((box) => {
       const isHovered = box.id === (model.hoveredBoxId ?? null);
-      content += generateBoxInfoHTML(box, isHovered);
+      const onGoal = isOnGoal(box, model.goals);
+      content += generateBoxInfoHTML(box, isHovered, onGoal);
       content += "<br>";
     });
   }
