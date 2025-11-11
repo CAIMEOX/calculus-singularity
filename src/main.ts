@@ -7,6 +7,7 @@ import {
   move_with_key,
   hover_box,
   clear_hover,
+  undo,
   view as moonView,
 } from "../singularity/target/js/release/build/cs.js";
 
@@ -75,7 +76,7 @@ function renderBoxes(
     visual.y = pos.y;
     visual.interactive = true;
     visual.on("mouseover", () => handlers.hover(box.id));
-    visual.on("mouseout", handlers.leave);
+    visual.on("mouseout", () => handlers.leave());
     layer.addChild(visual);
   });
 }
@@ -110,6 +111,8 @@ function createPixiApplication(side: number) {
     height: side,
     antialias: true,
     backgroundColor: 0x1a1a1a,
+    resolution: 2,
+    
   });
 }
 
@@ -125,7 +128,7 @@ function normalizeViewModel(raw: any): ViewModel {
   return {
     player: raw.player,
     boxes: raw.boxes ?? [],
-    hoveredBoxId: raw.hoveredBoxId ?? null,
+    hoveredBoxId: raw.hoveredBoxId,
     gridSize: raw.gridSize,
     cellSize: raw.cellSize,
   };
@@ -157,6 +160,14 @@ function main() {
   };
 
   window.addEventListener("keydown", (e) => {
+    if (e.key === "z" || e.key === "Z") {
+      const next = undo(coreModel);
+      if (next !== coreModel) {
+        coreModel = next;
+        render();
+      }
+      return;
+    }
     const next = move_with_key(coreModel, e.key);
     if (next !== coreModel) {
       coreModel = next;

@@ -6,6 +6,7 @@
                 "move_with_key",
                 "hover_box",
                 "clear_hover",
+                "undo",
                 "view"
             ]
         }

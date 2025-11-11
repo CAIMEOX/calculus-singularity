@@ -18,6 +18,13 @@ pub struct Model {
   hoveredBoxId : Int?
   gridSize : Int
   cellSize : Int
+  history : Array[Snapshot]
+}
+
+///| Snapshot used for undo
+pub struct Snapshot {
+  player : Vector
+  boxes : Array[Box]
 }
 
 ///| Render-ready snapshot returned to the TypeScript renderer
@@ -56,6 +63,7 @@ pub fn init_model() -> Model {
     hoveredBoxId: None,
     gridSize: default_grid_size(),
     cellSize: default_cell_size(),
+    history: Array::new(),
   }
 }
 
@@ -76,6 +84,7 @@ pub fn hover_box(model : Model, boxId : Int) -> Model {
       hoveredBoxId: Some(boxId),
       gridSize: model.gridSize,
       cellSize: model.cellSize,
+      history: model.history,
     }
   } else {
     model
@@ -90,6 +99,7 @@ pub fn clear_hover(model : Model) -> Model {
     hoveredBoxId: None,
     gridSize: model.gridSize,
     cellSize: model.cellSize,
+    history: model.history,
   }
 }
 
@@ -104,6 +114,25 @@ pub fn view(model : Model) -> ViewModel {
   }
 }
 
+///| Undo the last move if history is available
+pub fn undo(model : Model) -> Model {
+  let len = model.history.length()
+  if len == 0 {
+    model
+  } else {
+    let snapshot = model.history[len - 1]
+    let trimmed = copy_history_prefix(model.history, len - 1)
+    {
+      player: snapshot.player,
+      boxes: clone_boxes(snapshot.boxes),
+      hoveredBoxId: None,
+      gridSize: model.gridSize,
+      cellSize: model.cellSize,
+      history: trimmed,
+    }
+  }
+}
+
 ///| Core Elm update logic, implemented in Moonbit
 pub fn Model::step(self : Model, direction : Direction) -> Model {
   let nextPlayer = calculate_next_position(self.player, direction)
@@ -112,12 +141,14 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
   } else {
     match find_box_at_position(self.boxes, nextPlayer) {
       None => {
+        let history = append_snapshot(self.history, self.player, self.boxes)
         {
           player: nextPlayer,
           boxes: self.boxes,
           hoveredBoxId: self.hoveredBoxId,
           gridSize: self.gridSize,
           cellSize: self.cellSize,
+          history,
         }
       }
       Some(box) => {
@@ -126,12 +157,14 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
            is_position_occupied_by_other_box(self.boxes, nextBoxPos, box.id) {
           self
         } else {
+          let history = append_snapshot(self.history, self.player, self.boxes)
           {
             player: nextPlayer,
             boxes: update_box_position(self.boxes, box.id, nextBoxPos),
             hoveredBoxId: None,
             gridSize: self.gridSize,
             cellSize: self.cellSize,
+            history,
           }
         }
       }
@@ -215,6 +248,38 @@ fn snapshot_boxes(boxes : Array[Box]) -> Array[Box] {
     i += 1
   }
   copy
+}
+
+fn clone_boxes(boxes : Array[Box]) -> Array[Box] {
+  snapshot_boxes(boxes)
+}
+
+fn append_snapshot(history : Array[Snapshot], player : Vector, boxes : Array[Box]) -> Array[Snapshot] {
+  let len = history.length()
+  let next = Array::new(capacity=len + 1)
+  let mut i = 0
+  while i < len {
+    next.push(history[i])
+    i += 1
+  }
+  next.push({ player, boxes: clone_boxes(boxes) })
+  next
+}
+
+fn copy_history_prefix(history : Array[Snapshot], new_len : Int) -> Array[Snapshot] {
+  if new_len <= 0 {
+    Array::new()
+  } else {
+    let len = history.length()
+    let limit = if new_len < len { new_len } else { len }
+    let next = Array::new(capacity=limit)
+    let mut i = 0
+    while i < limit {
+      next.push(history[i])
+      i += 1
+    }
+    next
+  }
 }
 
 fn same_position(lhs : Vector, rhs : Vector) -> Bool {
