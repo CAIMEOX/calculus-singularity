@@ -9,4 +9,5 @@ declare module "../singularity/target/js/release/build/cs.js" {
   export function get_active_backup_meta(model: unknown): any;
   export function restore_backup(model: unknown, backupId: number): unknown;
   export function view(model: unknown): any;
+  export function generate_panel_content(model: unknown): string;
 }
