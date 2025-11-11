@@ -13,20 +13,33 @@ fn Direction::from_key(key : String) -> Direction? {
 ///|
 /// Initialize the core model
 pub fn init_model() -> Model {
-  let boxes = seed_boxes()
-  let goals = seed_goals()
+  init_model_for(default_level_id())
+}
+
+///|
+pub fn init_model_for(levelId : Int) -> Model {
+  build_model(level_seed(levelId))
+}
+
+///|
+fn build_model(seed : LevelSeed) -> Model {
+  let boxes = seed.boxes
+  let goals = seed.goals
   {
-    player: { x: 1, y: 1 },
+    player: seed.player,
     boxes,
     hoveredBoxId: None,
-    gridSize: default_grid_size(),
-    cellSize: default_cell_size(),
+    gridWidth: seed.info.gridWidth,
+    gridHeight: seed.info.gridHeight,
+    cellSize: seed.info.cellSize,
     goals,
     history: Array::new(),
     isComplete: goals_completed(boxes, goals),
     backups: Array::new(),
     activeBackupId: None,
     nextBackupId: 0,
+    levelId: seed.info.id,
+    levelName: seed.info.name,
   }
 }
 
@@ -47,7 +60,8 @@ pub fn hover_box(model : Model, boxId : Int) -> Model {
       player: model.player,
       boxes: model.boxes,
       hoveredBoxId: Some(boxId),
-      gridSize: model.gridSize,
+      gridWidth: model.gridWidth,
+      gridHeight: model.gridHeight,
       cellSize: model.cellSize,
       history: model.history,
       goals: model.goals,
@@ -55,6 +69,8 @@ pub fn hover_box(model : Model, boxId : Int) -> Model {
       backups: model.backups,
       activeBackupId: model.activeBackupId,
       nextBackupId: model.nextBackupId,
+      levelId: model.levelId,
+      levelName: model.levelName,
     }
   } else {
     model
@@ -68,7 +84,8 @@ pub fn clear_hover(model : Model) -> Model {
     player: model.player,
     boxes: model.boxes,
     hoveredBoxId: None,
-    gridSize: model.gridSize,
+    gridWidth: model.gridWidth,
+    gridHeight: model.gridHeight,
     cellSize: model.cellSize,
     history: model.history,
     goals: model.goals,
@@ -76,6 +93,8 @@ pub fn clear_hover(model : Model) -> Model {
     backups: model.backups,
     activeBackupId: model.activeBackupId,
     nextBackupId: model.nextBackupId,
+    levelId: model.levelId,
+    levelName: model.levelName,
   }
 }
 
@@ -86,10 +105,13 @@ pub fn view(model : Model) -> ViewModel {
     player: model.player,
     boxes: build_box_views(model.boxes),
     hoveredBoxId: model.hoveredBoxId,
-    gridSize: model.gridSize,
+    gridWidth: model.gridWidth,
+    gridHeight: model.gridHeight,
     cellSize: model.cellSize,
     goals: model.goals.copy(),
     isComplete: model.isComplete,
+    levelId: model.levelId,
+    levelName: model.levelName,
   }
 }
 
@@ -97,7 +119,7 @@ pub fn view(model : Model) -> ViewModel {
 /// Core Elm update logic, implemented in Moonbit
 pub fn Model::step(self : Model, direction : Direction) -> Model {
   let nextPlayer = calculate_next_position(self.player, direction)
-  if !is_in_bounds(nextPlayer, self.gridSize) {
+  if !is_in_bounds(nextPlayer, self.gridWidth, self.gridHeight) {
     self
   } else {
     match find_box_at_position(self.boxes, nextPlayer) {
@@ -107,7 +129,8 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           player: nextPlayer,
           boxes: self.boxes,
           hoveredBoxId: self.hoveredBoxId,
-          gridSize: self.gridSize,
+          gridWidth: self.gridWidth,
+          gridHeight: self.gridHeight,
           cellSize: self.cellSize,
           history,
           goals: self.goals,
@@ -115,6 +138,8 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           backups: self.backups,
           activeBackupId: self.activeBackupId,
           nextBackupId: self.nextBackupId,
+          levelId: self.levelId,
+          levelName: self.levelName,
         }
       }
       Some(box) => {
@@ -123,7 +148,7 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           box.pos,
           direction,
         )
-        if blocked || !is_in_bounds(landing, self.gridSize) {
+        if blocked || !is_in_bounds(landing, self.gridWidth, self.gridHeight) {
           let (merged_boxes, merged) = merge_chain_if_possible(
             self.boxes,
             chain,
@@ -132,17 +157,20 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
             let history = append_snapshot(self.history, self.player, self.boxes)
             {
               player: nextPlayer,
-              boxes: merged_boxes,
-              hoveredBoxId: None,
-              gridSize: self.gridSize,
-              cellSize: self.cellSize,
-              history,
-              goals: self.goals,
-              isComplete: goals_completed(merged_boxes, self.goals),
-              backups: self.backups,
-              activeBackupId: self.activeBackupId,
-              nextBackupId: self.nextBackupId,
-            }
+                boxes: merged_boxes,
+                hoveredBoxId: None,
+                gridWidth: self.gridWidth,
+                gridHeight: self.gridHeight,
+                cellSize: self.cellSize,
+                history,
+                goals: self.goals,
+                isComplete: goals_completed(merged_boxes, self.goals),
+                backups: self.backups,
+                activeBackupId: self.activeBackupId,
+                nextBackupId: self.nextBackupId,
+                levelId: self.levelId,
+                levelName: self.levelName,
+              }
           } else {
             self
           }
@@ -153,7 +181,8 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
             player: nextPlayer,
             boxes: moved_boxes,
             hoveredBoxId: None,
-            gridSize: self.gridSize,
+            gridWidth: self.gridWidth,
+            gridHeight: self.gridHeight,
             cellSize: self.cellSize,
             history,
             goals: self.goals,
@@ -161,6 +190,8 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
             backups: self.backups,
             activeBackupId: self.activeBackupId,
             nextBackupId: self.nextBackupId,
+            levelId: self.levelId,
+            levelName: self.levelName,
           }
         }
       }
@@ -179,8 +210,8 @@ fn calculate_next_position(pos : Vector, direction : Direction) -> Vector {
 }
 
 ///|
-fn is_in_bounds(pos : Vector, gridSize : Int) -> Bool {
-  pos.x >= 0 && pos.x < gridSize && pos.y >= 0 && pos.y < gridSize
+fn is_in_bounds(pos : Vector, width : Int, height : Int) -> Bool {
+  pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height
 }
 
 ///|

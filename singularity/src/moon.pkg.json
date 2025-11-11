@@ -3,6 +3,7 @@
         "js":{
             "exports": [
                 "init_model",
+                "init_model_for",
                 "move_with_key",
                 "hover_box",
                 "clear_hover",
@@ -12,7 +13,8 @@
                 "restore_backup",
                 "get_active_backup_meta",
                 "view",
-                "generate_panel_content"
+                "generate_panel_content",
+                "level_infos"
             ]
         }
     }

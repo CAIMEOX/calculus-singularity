@@ -40,12 +40,15 @@ fn compose_hovered(s : String) -> String {
 ///|
 pub fn generate_panel_content(modelView : ViewModel) -> String {
   let mut content = "<h3>INFO</h3><hr>"
+  content += "<p>Level \{modelView.levelId}: \{modelView.levelName}</p>"
+  content += "<p>Grid: \{modelView.gridWidth} x \{modelView.gridHeight}</p>"
   let is_complete = if modelView.isComplete {
     "Level Complete!"
   } else {
     "In Progress"
   }
   content += "<p>Status: \{is_complete}</p>"
+  content += "<p>Keys: 1-9 切换关卡 · Z 撤销 · B 备份 · R 重置</p>"
   for box in modelView.boxes {
     guard box.kind != "wall" else { continue }
     let on_goal = if box.on_goal(modelView.goals) { "Yes" } else { "No" }

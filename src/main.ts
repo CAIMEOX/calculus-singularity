@@ -1,10 +1,11 @@
 import * as PIXI from "pixi.js";
 import { createBox } from "./box";
 import { createInfoPanel, updateInfoPanel } from "./infoPanel";
-import { Vector2, ViewModel, BoxView } from "./types";
+import { Vector2, ViewModel, BoxView, LevelInfo } from "./types";
 import { createBackupPanel, renderBackupPanel } from "./backupPanel";
 import {
   init_model,
+  init_model_for,
   move_with_key,
   hover_box,
   clear_hover,
@@ -13,6 +14,7 @@ import {
   list_backups,
   restore_backup,
   get_active_backup_meta,
+  level_infos,
   view as moonView,
 } from "../singularity/target/js/release/build/cs.js";
 
@@ -51,6 +53,12 @@ interface RenderContext {
   player: PIXI.Container;
 }
 
+interface StageDimensions {
+  gridWidth: number;
+  gridHeight: number;
+  cellSize: number;
+}
+
 const toPixels = (cellSize: number, pos: Vector2) => ({
   x: pos.x * cellSize,
   y: pos.y * cellSize,
@@ -82,17 +90,32 @@ const boxStyleFor = (cellSize: number, box: BoxView) => {
   };
 };
 
-function drawGrid(stage: PIXI.Container, gridSize: number, cellSize: number) {
+function drawGrid(
+  stage: PIXI.Container,
+  gridWidth: number,
+  gridHeight: number,
+  cellSize: number
+) {
   const gfx = new PIXI.Graphics();
   gfx.lineStyle(1, COLORS.GRID, 0.5);
-  const size = gridSize * cellSize;
-  for (let i = 0; i <= gridSize; i++) {
-    gfx.moveTo(i * cellSize, 0);
-    gfx.lineTo(i * cellSize, size);
-    gfx.moveTo(0, i * cellSize);
-    gfx.lineTo(size, i * cellSize);
+  const widthPx = gridWidth * cellSize;
+  const heightPx = gridHeight * cellSize;
+  for (let x = 0; x <= gridWidth; x++) {
+    const xPos = x * cellSize;
+    gfx.moveTo(xPos, 0);
+    gfx.lineTo(xPos, heightPx);
+  }
+  for (let y = 0; y <= gridHeight; y++) {
+    const yPos = y * cellSize;
+    gfx.moveTo(0, yPos);
+    gfx.lineTo(widthPx, yPos);
   }
   stage.addChild(gfx);
+}
+
+function clearStage(stage: PIXI.Container) {
+  const removed = stage.removeChildren();
+  removed.forEach((child) => child.destroy({ children: true }));
 }
 
 function renderBoxes(
@@ -145,7 +168,7 @@ function renderScene(
 }
 
 function createRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
-  drawGrid(app.stage, view.gridSize, view.cellSize);
+  drawGrid(app.stage, view.gridWidth, view.gridHeight, view.cellSize);
   const goalLayer = new PIXI.Container();
   const boxLayer = new PIXI.Container();
   const player = createBox(playerStyle(view.cellSize));
@@ -155,14 +178,33 @@ function createRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
   return { goalLayer, boxLayer, player };
 }
 
-function createPixiApplication(side: number) {
+function rebuildRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
+  clearStage(app.stage);
+  return createRenderer(app, view);
+}
+
+function createPixiApplication(width: number, height: number) {
   return new PIXI.Application({
-    width: side,
-    height: side,
+    width,
+    height,
     antialias: true,
     backgroundColor: 0x1a1a1a,
     resolution: 2,
   });
+}
+
+function applyCanvasSize(
+  app: PIXI.Application,
+  gridWidth: number,
+  gridHeight: number,
+  cellSize: number
+) {
+  const width = gridWidth * cellSize;
+  const height = gridHeight * cellSize;
+  app.renderer.resize(width, height);
+  const canvas = app.view as HTMLCanvasElement;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
 }
 
 function mount(app: PIXI.Application) {
@@ -187,10 +229,31 @@ function mount(app: PIXI.Application) {
 function main() {
   let coreModel: CoreModel = init_model();
   let viewModel: ViewModel = moonView(coreModel);
+  let rendererDims: StageDimensions = {
+    gridWidth: viewModel.gridWidth,
+    gridHeight: viewModel.gridHeight,
+    cellSize: viewModel.cellSize,
+  };
+  let needsStageRebuild = false;
 
-  const app = createPixiApplication(viewModel.gridSize * viewModel.cellSize);
+  const levelCatalog = (level_infos() ?? []) as LevelInfo[];
+  const levelHotkeys = new Map<string, number>();
+  levelCatalog.slice(0, 9).forEach((level, index) => {
+    levelHotkeys.set(String(index + 1), level.id);
+  });
+
+  const app = createPixiApplication(
+    viewModel.gridWidth * viewModel.cellSize,
+    viewModel.gridHeight * viewModel.cellSize
+  );
+  applyCanvasSize(
+    app,
+    rendererDims.gridWidth,
+    rendererDims.gridHeight,
+    rendererDims.cellSize
+  );
   const { infoPanel, backupList } = mount(app);
-  const ctx = createRenderer(app, viewModel);
+  let ctx = createRenderer(app, viewModel);
 
   const handlers: HoverHandlers = {
     hover: (boxId) => {
@@ -203,8 +266,33 @@ function main() {
     },
   };
 
+  const resizeIfNeeded = (view: ViewModel) => {
+    const changed =
+      needsStageRebuild ||
+      view.gridWidth !== rendererDims.gridWidth ||
+      view.gridHeight !== rendererDims.gridHeight ||
+      view.cellSize !== rendererDims.cellSize;
+    if (!changed) {
+      return;
+    }
+    rendererDims = {
+      gridWidth: view.gridWidth,
+      gridHeight: view.gridHeight,
+      cellSize: view.cellSize,
+    };
+    applyCanvasSize(
+      app,
+      rendererDims.gridWidth,
+      rendererDims.gridHeight,
+      rendererDims.cellSize
+    );
+    ctx = rebuildRenderer(app, view);
+    needsStageRebuild = false;
+  };
+
   const render = () => {
     viewModel = moonView(coreModel);
+    resizeIfNeeded(viewModel);
     renderScene(ctx, viewModel, handlers);
     updateInfoPanel(infoPanel, viewModel);
   };
@@ -250,7 +338,30 @@ function main() {
 
   refreshBackups();
 
+  const loadLevel = (levelId: number) => {
+    coreModel = init_model_for(levelId);
+    thumbnailStore.clear();
+    refreshBackups();
+    needsStageRebuild = true;
+    render();
+  };
+
+  const handleLevelHotkey = (key: string) => {
+    const levelId = levelHotkeys.get(key);
+    if (levelId === undefined) {
+      return false;
+    }
+    if (levelId !== viewModel.levelId) {
+      loadLevel(levelId);
+    }
+    return true;
+  };
+
   window.addEventListener("keydown", (e) => {
+    if (handleLevelHotkey(e.key)) {
+      e.preventDefault();
+      return;
+    }
     if (e.key === "z" || e.key === "Z") {
       const next = undo(coreModel);
       if (next !== coreModel) {
@@ -260,10 +371,7 @@ function main() {
       return;
     }
     if (e.key === "r" || e.key === "R") {
-      coreModel = init_model();
-      thumbnailStore.clear();
-      refreshBackups();
-      render();
+      loadLevel(viewModel.levelId);
       return;
     }
     if (e.key === "b" || e.key === "B") {

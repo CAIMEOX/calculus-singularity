@@ -12,7 +12,8 @@ pub fn undo(model : Model) -> Model {
       player: snapshot.player,
       boxes,
       hoveredBoxId: None,
-      gridSize: model.gridSize,
+      gridWidth: model.gridWidth,
+      gridHeight: model.gridHeight,
       cellSize: model.cellSize,
       history: trimmed,
       goals: model.goals,
@@ -20,6 +21,8 @@ pub fn undo(model : Model) -> Model {
       backups: model.backups,
       activeBackupId: model.activeBackupId,
       nextBackupId: model.nextBackupId,
+      levelId: model.levelId,
+      levelName: model.levelName,
     }
   }
 }
@@ -43,7 +46,8 @@ pub fn Model::save_backup(self : Model, timestamp : Int) -> Model {
     player: self.player,
     boxes: self.boxes,
     hoveredBoxId: self.hoveredBoxId,
-    gridSize: self.gridSize,
+    gridWidth: self.gridWidth,
+    gridHeight: self.gridHeight,
     cellSize: self.cellSize,
     goals: self.goals,
     history: self.history,
@@ -51,6 +55,8 @@ pub fn Model::save_backup(self : Model, timestamp : Int) -> Model {
     backups: updatedBackups,
     activeBackupId: Some(newId),
     nextBackupId: newId,
+    levelId: self.levelId,
+    levelName: self.levelName,
   }
 }
 
@@ -97,7 +103,8 @@ fn apply_backup_state(
     player: state.player,
     boxes,
     hoveredBoxId: state.hoveredBoxId,
-    gridSize: model.gridSize,
+    gridWidth: model.gridWidth,
+    gridHeight: model.gridHeight,
     cellSize: model.cellSize,
     goals: model.goals,
     history,
@@ -105,6 +112,8 @@ fn apply_backup_state(
     backups: model.backups,
     activeBackupId: Some(activeId),
     nextBackupId: model.nextBackupId,
+    levelId: model.levelId,
+    levelName: model.levelName,
   }
 }
 

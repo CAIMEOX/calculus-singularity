@@ -26,7 +26,8 @@ pub struct Model {
   player : Vector
   boxes : Array[Box]
   hoveredBoxId : Int?
-  gridSize : Int
+  gridWidth : Int
+  gridHeight : Int
   cellSize : Int
   goals : Array[Vector]
   history : Array[Snapshot]
@@ -34,6 +35,8 @@ pub struct Model {
   backups : Array[BackupNode]
   activeBackupId : Int?
   nextBackupId : Int
+  levelId : Int
+  levelName : String
 }
 
 ///|
@@ -49,10 +52,13 @@ pub struct ViewModel {
   player : Vector
   boxes : Array[BoxView]
   hoveredBoxId : Int?
-  gridSize : Int
+  gridWidth : Int
+  gridHeight : Int
   cellSize : Int
   goals : Array[Vector]
   isComplete : Bool
+  levelId : Int
+  levelName : String
 }
 
 ///|
