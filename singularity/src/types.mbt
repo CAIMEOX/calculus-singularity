@@ -3,7 +3,7 @@
 pub struct Vector {
   x : Int
   y : Int
-}
+} derive(@json.FromJson, ToJson)
 
 ///|
 /// Box entity that can be pushed around by the player
@@ -11,7 +11,7 @@ pub struct Box {
   id : Int
   pos : Vector
   kind : Kind
-}
+} derive(@json.FromJson, ToJson)
 
 ///|
 /// Supported box kinds
@@ -23,7 +23,7 @@ pub enum Kind {
   Neg(Kind?)
   Fst
   Snd
-} derive(Eq)
+} derive(Eq, @json.FromJson, ToJson)
 
 ///|
 /// Internal application state handled entirely inside Moonbit
@@ -70,7 +70,7 @@ pub struct ViewModel {
 pub struct Goal {
   pos : Vector
   prop : Kind
-}
+} derive(@json.FromJson, ToJson)
 
 ///|
 pub struct GoalView {

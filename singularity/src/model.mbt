@@ -22,7 +22,7 @@ pub fn init_model_for(levelId : Int) -> Model {
 }
 
 ///|
-fn build_model(seed : LevelSeed) -> Model {
+fn build_model(seed : Level) -> Model {
   let boxes = seed.boxes
   let goals = seed.goals
   {
@@ -393,9 +393,7 @@ fn apply_merge(
 ) -> Array[Box] {
   let len = boxes.length()
   let merged = Array::new(capacity=len - 1)
-  let mut idx = 0
-  while idx < len {
-    let box = boxes[idx]
+  for box in boxes {
     if box.id == first.id {
       merged.push({ id: second.id, pos: second.pos, kind: new_kind })
     } else if box.id == second.id {
@@ -403,7 +401,6 @@ fn apply_merge(
     } else {
       merged.push(box)
     }
-    idx += 1
   }
   merged
 }

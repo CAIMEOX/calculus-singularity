@@ -1,21 +1,4 @@
 ///|
-pub struct LevelInfo {
-  id : Int
-  name : String
-  gridWidth : Int
-  gridHeight : Int
-  cellSize : Int
-}
-
-///|
-pub struct LevelSeed {
-  info : LevelInfo
-  player : Vector
-  boxes : Array[Box]
-  goals : Array[Goal]
-}
-
-///|
 const DEFAULT_LEVEL_ID : Int = 1
 
 ///|
@@ -63,81 +46,10 @@ const AND_BORDER : Int = 0xb094ff
 ///|
 const PI_FILL : Int = 0x0c3c7a
 
-///|
-fn make_wall(id : Int, x : Int, y : Int) -> Box {
-  { id, pos: { x, y }, kind: Wall }
-}
+
 
 ///|
-fn make_prop_box(id : Int, x : Int, y : Int, label : String) -> Box {
-  { id, pos: { x, y }, kind: Prop(label) }
-}
-
-///|
-fn make_implication_box(
-  id : Int,
-  x : Int,
-  y : Int,
-  premise : String,
-  conclusion : String,
-) -> Box {
-  { id, pos: { x, y }, kind: Implication(Prop(premise), Prop(conclusion)) }
-}
-
-///|
-fn make_and_box(
-  id : Int,
-  x : Int,
-  y : Int,
-  left : String,
-  right : String,
-) -> Box {
-  { id, pos: { x, y }, kind: And(Prop(left), Prop(right)) }
-}
-
-///|
-fn make_pi1_box(id : Int, x : Int, y : Int) -> Box {
-  { id, pos: { x, y }, kind: Fst }
-}
-
-///|
-fn make_pi2_box(id : Int, x : Int, y : Int) -> Box {
-  { id, pos: { x, y }, kind: Snd }
-}
-
-///|
-fn make_goal(x : Int, y : Int, prop : String) -> Goal {
-  { pos: { x, y }, prop: Prop(prop) }
-}
-
-///|
-fn clone_boxes(source : Array[Box]) -> Array[Box] {
-  let len = source.length()
-  let boxes = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    let box = source[i]
-    boxes.push({ id: box.id, pos: box.pos, kind: box.kind })
-    i += 1
-  }
-  boxes
-}
-
-///|
-fn clone_goals(source : Array[Goal]) -> Array[Goal] {
-  let len = source.length()
-  let goals = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    let goal = source[i]
-    goals.push({ pos: goal.pos, prop: goal.prop })
-    i += 1
-  }
-  goals
-}
-
-///|
-fn build_level_one() -> LevelSeed {
+fn build_level_one() -> Level {
   let boxes : Array[Box] = Array::new(capacity=8)
   boxes.push(make_prop_box(1, 2, 2, "A"))
   boxes.push(make_implication_box(2, 3, 2, "A", "B"))
@@ -164,7 +76,7 @@ fn build_level_one() -> LevelSeed {
 }
 
 ///|
-fn build_level_two() -> LevelSeed {
+fn build_level_two() -> Level {
   let boxes : Array[Box] = Array::new(capacity=11)
   boxes.push(make_prop_box(1, 2, 5, "A"))
   boxes.push(make_prop_box(2, 3, 5, "B"))
@@ -195,7 +107,7 @@ fn build_level_two() -> LevelSeed {
 }
 
 ///|
-fn build_level_three() -> LevelSeed {
+fn build_level_three() -> Level {
   let boxes : Array[Box] = Array::new(capacity=13)
   boxes.push(make_prop_box(1, 3, 3, "A"))
   boxes.push(make_implication_box(2, 4, 3, "A", "B"))
@@ -229,8 +141,8 @@ fn build_level_three() -> LevelSeed {
 }
 
 ///|
-fn level_pool() -> Array[LevelSeed] {
-  let levels : Array[LevelSeed] = Array::new(capacity=3)
+fn level_pool() -> Array[Level] {
+  let levels : Array[Level] = Array::new(capacity=3)
   levels.push(build_level_one())
   levels.push(build_level_two())
   levels.push(build_level_three())
@@ -238,7 +150,7 @@ fn level_pool() -> Array[LevelSeed] {
 }
 
 ///|
-fn find_level(levelId : Int) -> LevelSeed {
+fn find_level(levelId : Int) -> Level {
   let levels = level_pool()
   let len = levels.length()
   let mut i = 0
@@ -253,13 +165,13 @@ fn find_level(levelId : Int) -> LevelSeed {
 }
 
 ///|
-pub fn level_seed(levelId : Int) -> LevelSeed {
+pub fn level_seed(levelId : Int) -> Level {
   let seed = find_level(levelId)
   {
     info: seed.info,
     player: seed.player,
-    boxes: clone_boxes(seed.boxes),
-    goals: clone_goals(seed.goals),
+    boxes: seed.boxes.copy(),
+    goals: seed.goals.copy(),
   }
 }
 
