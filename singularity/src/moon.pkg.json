@@ -26,7 +26,8 @@
                 "make_pi2_box",
                 "make_goal",
                 "make_negation_box",
-                "make_negation_box_with_inner"
+                "make_negation_box_with_inner",
+                "compose_kind"
             ]
         }
     }

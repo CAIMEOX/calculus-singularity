@@ -46,4 +46,5 @@ declare module "../singularity/target/js/release/build/cs.js" {
     y: number,
     inner: string
   ): any;
+  export function compose_kind(raw: string): any;
 }

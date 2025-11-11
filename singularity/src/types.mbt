@@ -21,8 +21,8 @@ pub enum Kind {
   Implication(Kind, Kind)
   And(Kind, Kind)
   Neg(Kind?)
-  Fst
-  Snd
+  Fst(Kind?)
+  Snd(Kind?)
 } derive(Eq, @json.FromJson, ToJson)
 
 ///|

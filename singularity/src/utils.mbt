@@ -27,8 +27,10 @@ pub impl Show for Kind with to_string(self) {
       "\{norm_p} → \{norm_c}"
     }
     And(left, right) => "(\{left} ∧ \{right})"
-    Fst => "π₁ (fst)"
-    Snd => "π₂ (snd)"
+    Fst(Some(expr)) => "π₁(\{expr})"
+    Fst(None) => "π₁"
+    Snd(Some(expr)) => "π₂(\{expr})"
+    Snd(None) => "π₂"
     Neg(Some(Neg(Some(x)))) => x.to_string()
     Neg(Some(Prop(label))) => "¬\{label}"
     Neg(None) => "¬"
@@ -138,7 +140,7 @@ pub fn style_for_kind(kind : Kind, cellSize : Int) -> Style {
         borderColor: AND_BORDER,
         symbol: "∧",
       }
-    Fst =>
+    Fst(_) =>
       {
         size: cellSize,
         borderWidth,
@@ -147,7 +149,7 @@ pub fn style_for_kind(kind : Kind, cellSize : Int) -> Style {
         borderColor: 0x74c0ff,
         symbol: "π₁",
       }
-    Snd =>
+    Snd(_) =>
       {
         size: cellSize,
         borderWidth,
