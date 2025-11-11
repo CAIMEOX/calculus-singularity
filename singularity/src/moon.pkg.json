@@ -1,0 +1,13 @@
+{
+    "link":{
+        "js":{
+            "exports": [
+                "init_model",
+                "move_with_key",
+                "hover_box",
+                "clear_hover",
+                "view"
+            ]
+        }
+    }
+}
