@@ -108,7 +108,7 @@ pub fn view(model : Model) -> ViewModel {
     gridWidth: model.gridWidth,
     gridHeight: model.gridHeight,
     cellSize: model.cellSize,
-    goals: model.goals.copy(),
+    goals: build_goal_views(model.goals, model.boxes),
     isComplete: model.isComplete,
     levelId: model.levelId,
     levelName: model.levelName,
@@ -157,20 +157,20 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
             let history = append_snapshot(self.history, self.player, self.boxes)
             {
               player: nextPlayer,
-                boxes: merged_boxes,
-                hoveredBoxId: None,
-                gridWidth: self.gridWidth,
-                gridHeight: self.gridHeight,
-                cellSize: self.cellSize,
-                history,
-                goals: self.goals,
-                isComplete: goals_completed(merged_boxes, self.goals),
-                backups: self.backups,
-                activeBackupId: self.activeBackupId,
-                nextBackupId: self.nextBackupId,
-                levelId: self.levelId,
-                levelName: self.levelName,
-              }
+              boxes: merged_boxes,
+              hoveredBoxId: None,
+              gridWidth: self.gridWidth,
+              gridHeight: self.gridHeight,
+              cellSize: self.cellSize,
+              history,
+              goals: self.goals,
+              isComplete: goals_completed(merged_boxes, self.goals),
+              backups: self.backups,
+              activeBackupId: self.activeBackupId,
+              nextBackupId: self.nextBackupId,
+              levelId: self.levelId,
+              levelName: self.levelName,
+            }
           } else {
             self
           }
@@ -275,7 +275,7 @@ fn collect_box_chain(
         Some(b) =>
           match b.kind {
             Wall => break (cursor, true)
-            Int(_) => {
+            _ => {
               chain.push(b.id)
               continue calculate_next_position(cursor, direction)
             }
@@ -299,13 +299,13 @@ fn move_box_chain(
     let box = boxes[i]
     if chain.contains(box.id) {
       match box.kind {
-        Int(value) =>
+        Wall => moved.push(box)
+        _ =>
           moved.push({
             id: box.id,
             pos: calculate_next_position(box.pos, direction),
-            kind: Int(value),
+            kind: box.kind,
           })
-        Wall => moved.push(box)
       }
     } else {
       moved.push(box)
@@ -334,44 +334,128 @@ fn merge_chain_if_possible(
     Some(box) => box
     None => return (boxes, false)
   }
-  match (first_box.kind, second_box.kind) {
-    (Int(v1), Int(v2)) => {
-      let len = boxes.length()
-      let merged = Array::new(capacity=len - 1)
-      let mut idx = 0
-      while idx < len {
-        let box = boxes[idx]
-        if box.id == first_box.id {
-          merged.push({
-            id: second_box.id,
-            pos: second_box.pos,
-            kind: Int(v1 + v2),
-          })
-        } else if box.id == second_box.id {
-          // skip second box (already merged)
-        } else {
-          merged.push(box)
-        }
-        idx += 1
-      }
-      (merged, true)
-    }
-    _ => (boxes, false)
+  match fusion_result(first_box.kind, second_box.kind) {
+    Some(new_kind) =>
+      (apply_merge(boxes, first_box, second_box, new_kind), true)
+    None => (boxes, false)
   }
 }
 
 ///|
 fn to_box_view(box : Box) -> BoxView {
   match box.kind {
-    Wall => { id: box.id, pos: box.pos, kind: "wall", value: None }
-    Int(value) => { id: box.id, pos: box.pos, kind: "int", value: Some(value) }
+    Wall =>
+      { id: box.id, pos: box.pos, kind: "wall", label: None, secondary: None }
+    Prop(label) =>
+      {
+        id: box.id,
+        pos: box.pos,
+        kind: "prop",
+        label: Some(label),
+        secondary: None,
+      }
+    Implication(premise, conclusion) =>
+      {
+        id: box.id,
+        pos: box.pos,
+        kind: "implication",
+        label: Some(premise.to_string()),
+        secondary: Some(conclusion.to_string()),
+      }
+    And(left, right) =>
+      {
+        id: box.id,
+        pos: box.pos,
+        kind: "and",
+        label: Some(left.to_string()),
+        secondary: Some(right.to_string()),
+      }
+    Fst =>
+      { id: box.id, pos: box.pos, kind: "pi1", label: None, secondary: None }
+    Snd =>
+      { id: box.id, pos: box.pos, kind: "pi2", label: None, secondary: None }
+    Neg(inner) =>
+      {
+        id: box.id,
+        pos: box.pos,
+        kind: "neg",
+        label: match inner {
+          Some(kind) => Some(kind.to_string())
+          None => None
+        },
+        secondary: None,
+      }
   }
 }
 
 ///|
-fn goals_completed(boxes : Array[Box], goals : Array[Vector]) -> Bool {
-  goals
-  .iter()
-  .all(goal => find_box_at_position(boxes, goal) is Some(box) &&
-    box.kind is Int(_))
+fn goals_completed(boxes : Array[Box], goals : Array[Goal]) -> Bool {
+  goals.iter().all(goal => goal_satisfied(goal.pos, goal.prop, boxes))
+}
+
+///|
+fn build_goal_views(goals : Array[Goal], boxes : Array[Box]) -> Array[GoalView] {
+  let len = goals.length()
+  let views = Array::new(capacity=len)
+  let mut idx = 0
+  while idx < len {
+    let goal = goals[idx]
+    views.push({
+      pos: goal.pos,
+      prop: goal.prop.to_string(),
+      satisfied: goal_satisfied(goal.pos, goal.prop, boxes),
+    })
+    idx += 1
+  }
+  views
+}
+
+///|
+fn goal_satisfied(pos : Vector, prop : BoxType, boxes : Array[Box]) -> Bool {
+  find_box_at_position(boxes, pos) is Some(box) && box.kind == prop
+}
+
+///|
+fn fusion_result(first : BoxType, second : BoxType) -> BoxType? {
+  match (first, second) {
+    (Prop(_) as p1, Prop(_) as p2) => Some(And(p1, p2))
+    (Implication(a, b), Implication(c, d)) if b == c => Some(Implication(a, d))
+    (Implication(pre, conclusion), input) if input == pre => Some(conclusion)
+    (Implication(_), _) => None
+    (input, Implication(pre, conclusion)) if input == pre => Some(conclusion)
+    (_, Implication(_)) => None
+    (Fst, And(left, _)) => Some(left)
+    (And(left, _), Fst) => Some(left)
+    (Snd, And(_, right)) => Some(right)
+    (And(_, right), Snd) => Some(right)
+    (Prop(a), And(_) as b) => Some(And(b, Prop(a)))
+    (And(_) as a, Prop(b)) => Some(And(a, Prop(b)))
+    (Neg(Some(x)), Neg(None)) | (Neg(None), Neg(Some(x))) => Some(x)
+    (Neg(None), y) | (y, Neg(None)) => Some(Neg(Some(y)))
+    _ => None
+  }
+}
+
+///|
+fn apply_merge(
+  boxes : Array[Box],
+  first : Box,
+  second : Box,
+  new_kind : BoxType,
+) -> Array[Box] {
+  let len = boxes.length()
+  let merged = Array::new(capacity=len - 1)
+  let mut idx = 0
+  while idx < len {
+    let box = boxes[idx]
+    if box.id == first.id {
+      merged.push({ id: second.id, pos: second.pos, kind: new_kind })
+    } else if box.id == second.id {
+      // skip
+    } else {
+      merged.push(box)
+    }
+    idx += 1
+  }
+  merged
 }

@@ -4,6 +4,7 @@ import { generate_panel_content } from "../singularity/target/js/release/build/c
 function getPanelStyle() {
   return {
     width: 250,
+    height: 300,
     backgroundColor: "#1a1a1a",
     textColor: "#cccccc",
     fontFamily: '"Courier New", Courier, monospace',
@@ -26,7 +27,7 @@ export function createInfoPanel(): HTMLElement {
     fontSize: panelStyle.fontSize,
     padding: panelStyle.padding,
     lineHeight: panelStyle.lineHeight,
-    height: "100%",
+    outerHeight: "1000px",
     boxSizing: "border-box",
   });
 

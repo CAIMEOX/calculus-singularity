@@ -6,8 +6,23 @@ export interface Vector2 {
 export interface BoxView {
   id: number;
   pos: Vector2;
-  kind: "wall" | "int";
-  value?: number | null;
+  kind: BoxKind;
+  label?: string | null;
+  secondary?: string | null;
+}
+
+export type BoxKind =
+  | "wall"
+  | "prop"
+  | "implication"
+  | "and"
+  | "pi1"
+  | "pi2";
+
+export interface GoalView {
+  pos: Vector2;
+  prop: string;
+  satisfied: boolean;
 }
 
 export interface ViewModel {
@@ -17,7 +32,7 @@ export interface ViewModel {
   gridWidth: number;
   gridHeight: number;
   cellSize: number;
-  goals: Vector2[];
+  goals: GoalView[];
   isComplete: boolean;
   levelId: number;
   levelName: string;

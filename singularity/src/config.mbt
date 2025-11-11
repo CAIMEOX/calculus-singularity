@@ -12,15 +12,11 @@ pub struct LevelSeed {
   info : LevelInfo
   player : Vector
   boxes : Array[Box]
-  goals : Array[Vector]
+  goals : Array[Goal]
 }
-
-const DEFAULT_LEVEL_ID : Int = 1
 
 ///|
-fn make_int_box(id : Int, x : Int, y : Int, value : Int) -> Box {
-  { id, pos: { x, y }, kind: Int(value) }
-}
+const DEFAULT_LEVEL_ID : Int = 1
 
 ///|
 fn make_wall(id : Int, x : Int, y : Int) -> Box {
@@ -28,8 +24,45 @@ fn make_wall(id : Int, x : Int, y : Int) -> Box {
 }
 
 ///|
-fn make_goal(x : Int, y : Int) -> Vector {
-  { x, y }
+fn make_prop_box(id : Int, x : Int, y : Int, label : String) -> Box {
+  { id, pos: { x, y }, kind: Prop(label) }
+}
+
+///|
+fn make_implication_box(
+  id : Int,
+  x : Int,
+  y : Int,
+  premise : String,
+  conclusion : String,
+) -> Box {
+  { id, pos: { x, y }, kind: Implication(Prop(premise), Prop(conclusion)) }
+}
+
+///|
+fn make_and_box(
+  id : Int,
+  x : Int,
+  y : Int,
+  left : String,
+  right : String,
+) -> Box {
+  { id, pos: { x, y }, kind: And(Prop(left), Prop(right)) }
+}
+
+///|
+fn make_pi1_box(id : Int, x : Int, y : Int) -> Box {
+  { id, pos: { x, y }, kind: Fst }
+}
+
+///|
+fn make_pi2_box(id : Int, x : Int, y : Int) -> Box {
+  { id, pos: { x, y }, kind: Snd }
+}
+
+///|
+fn make_goal(x : Int, y : Int, prop : String) -> Goal {
+  { pos: { x, y }, prop: Prop(prop) }
 }
 
 ///|
@@ -46,13 +79,13 @@ fn clone_boxes(source : Array[Box]) -> Array[Box] {
 }
 
 ///|
-fn clone_goals(source : Array[Vector]) -> Array[Vector] {
+fn clone_goals(source : Array[Goal]) -> Array[Goal] {
   let len = source.length()
   let goals = Array::new(capacity=len)
   let mut i = 0
   while i < len {
     let goal = source[i]
-    goals.push(goal)
+    goals.push({ pos: goal.pos, prop: goal.prop })
     i += 1
   }
   goals
@@ -60,26 +93,24 @@ fn clone_goals(source : Array[Vector]) -> Array[Vector] {
 
 ///|
 fn build_level_one() -> LevelSeed {
-  let boxes : Array[Box] = Array::new(capacity=6)
-  boxes.push(make_int_box(1, 2, 2, 3))
-  boxes.push(make_int_box(2, 3, 2, 7))
-  boxes.push(make_int_box(3, 3, 3, 1))
-  boxes.push(make_wall(4, 5, 5))
-  boxes.push(make_wall(5, 6, 5))
-  boxes.push(make_wall(6, 7, 5))
-
-  let goals : Array[Vector] = Array::new(capacity=3)
-  goals.push(make_goal(8, 2))
-  goals.push(make_goal(8, 3))
-  goals.push(make_goal(8, 4))
-
+  let boxes : Array[Box] = Array::new(capacity=8)
+  boxes.push(make_prop_box(1, 2, 2, "A"))
+  boxes.push(make_implication_box(2, 3, 2, "A", "B"))
+  boxes.push(make_prop_box(3, 1, 4, "C"))
+  boxes.push(make_implication_box(4, 2, 4, "C", "A"))
+  boxes.push(make_wall(5, 6, 1))
+  boxes.push(make_wall(6, 6, 2))
+  boxes.push(make_wall(7, 6, 3))
+  boxes.push(make_prop_box(8, 4, 5, "A"))
+  let goals : Array[Goal] = Array::new(capacity=1)
+  goals.push(make_goal(9, 2, "B"))
   {
     info: {
       id: 1,
-      name: "入门演算",
-      gridWidth: 10,
-      gridHeight: 10,
-      cellSize: 50,
+      name: "命题觉醒",
+      gridWidth: 12,
+      gridHeight: 8,
+      cellSize: 48,
     },
     player: { x: 1, y: 1 },
     boxes,
@@ -89,30 +120,30 @@ fn build_level_one() -> LevelSeed {
 
 ///|
 fn build_level_two() -> LevelSeed {
-  let boxes : Array[Box] = Array::new(capacity=7)
-  boxes.push(make_int_box(1, 1, 5, 2))
-  boxes.push(make_int_box(2, 2, 5, 5))
-  boxes.push(make_int_box(3, 3, 5, 1))
-  boxes.push(make_int_box(4, 2, 3, 4))
-  boxes.push(make_wall(5, 5, 2))
-  boxes.push(make_wall(6, 5, 3))
-  boxes.push(make_wall(7, 5, 4))
-
-  let goals : Array[Vector] = Array::new(capacity=4)
-  goals.push(make_goal(7, 2))
-  goals.push(make_goal(7, 3))
-  goals.push(make_goal(7, 4))
-  goals.push(make_goal(7, 5))
-
+  let boxes : Array[Box] = Array::new(capacity=11)
+  boxes.push(make_prop_box(1, 2, 5, "A"))
+  boxes.push(make_prop_box(2, 3, 5, "B"))
+  boxes.push(make_prop_box(3, 2, 3, "A"))
+  boxes.push(make_prop_box(4, 3, 3, "B"))
+  boxes.push(make_pi1_box(5, 6, 4))
+  boxes.push(make_pi2_box(6, 7, 4))
+  boxes.push(make_implication_box(7, 4, 6, "B", "C"))
+  boxes.push(make_prop_box(8, 5, 6, "C"))
+  boxes.push(make_wall(9, 5, 2))
+  boxes.push(make_wall(10, 5, 3))
+  boxes.push(make_wall(11, 5, 4))
+  let goals : Array[Goal] = Array::new(capacity=2)
+  goals.push(make_goal(10, 3, "A"))
+  goals.push(make_goal(10, 4, "B"))
   {
     info: {
       id: 2,
-      name: "组合归约",
+      name: "合取演算",
       gridWidth: 12,
-      gridHeight: 8,
-      cellSize: 48,
+      gridHeight: 10,
+      cellSize: 46,
     },
-    player: { x: 0, y: 4 },
+    player: { x: 1, y: 4 },
     boxes,
     goals,
   }
@@ -120,31 +151,33 @@ fn build_level_two() -> LevelSeed {
 
 ///|
 fn build_level_three() -> LevelSeed {
-  let boxes : Array[Box] = Array::new(capacity=9)
-  boxes.push(make_int_box(1, 4, 2, 8))
-  boxes.push(make_int_box(2, 5, 2, 3))
-  boxes.push(make_int_box(3, 4, 3, 1))
-  boxes.push(make_int_box(4, 5, 3, 6))
-  boxes.push(make_wall(5, 2, 5))
-  boxes.push(make_wall(6, 3, 5))
-  boxes.push(make_wall(7, 4, 5))
-  boxes.push(make_wall(8, 5, 5))
-  boxes.push(make_wall(9, 6, 5))
-
-  let goals : Array[Vector] = Array::new(capacity=3)
-  goals.push(make_goal(8, 1))
-  goals.push(make_goal(8, 2))
-  goals.push(make_goal(8, 3))
-
+  let boxes : Array[Box] = Array::new(capacity=13)
+  boxes.push(make_prop_box(1, 3, 3, "A"))
+  boxes.push(make_implication_box(2, 4, 3, "A", "B"))
+  boxes.push(make_implication_box(3, 5, 3, "B", "C"))
+  boxes.push(make_prop_box(4, 2, 6, "D"))
+  boxes.push(make_prop_box(5, 3, 6, "E"))
+  boxes.push(make_and_box(6, 7, 5, "D", "E"))
+  boxes.push(make_pi1_box(7, 9, 4))
+  boxes.push(make_pi2_box(8, 9, 6))
+  boxes.push(make_implication_box(9, 6, 2, "C", "F"))
+  boxes.push(make_prop_box(10, 4, 7, "F"))
+  boxes.push(make_wall(11, 6, 4))
+  boxes.push(make_wall(12, 6, 5))
+  boxes.push(make_wall(13, 6, 6))
+  let goals : Array[Goal] = Array::new(capacity=3)
+  goals.push(make_goal(11, 3, "C"))
+  goals.push(make_goal(12, 5, "D"))
+  goals.push(make_goal(12, 6, "E"))
   {
     info: {
       id: 3,
-      name: "折叠与展开",
+      name: "演绎乐章",
       gridWidth: 14,
       gridHeight: 10,
-      cellSize: 46,
+      cellSize: 44,
     },
-    player: { x: 2, y: 2 },
+    player: { x: 1, y: 2 },
     boxes,
     goals,
   }

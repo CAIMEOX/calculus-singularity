@@ -37,6 +37,11 @@ const COLORS = {
   WALL_BORDER: 0x0f0f0f,
   GOAL: 0x2ef5a0,
   GOAL_COMPLETE: 0xf5d142,
+  PROP_FILL: 0x1f8a70,
+  PROP_BORDER: 0x4efee8,
+  IMPLICATION_FILL: 0x6a381f,
+  AND_FILL: 0x352070,
+  PI_FILL: 0x0c3c7a,
 };
 
 const thumbnailStore = new Map<number, string>();
@@ -72,22 +77,70 @@ const playerStyle = (cellSize: number) => ({
 });
 
 const boxStyleFor = (cellSize: number, box: BoxView) => {
-  if (box.kind === "wall") {
-    return {
-      size: cellSize,
-      fillColor: COLORS.WALL_FILL,
-      borderColor: COLORS.WALL_BORDER,
-      symbol: "",
-    };
-  }
-  const label =
-    box.value !== undefined && box.value !== null ? `${box.value}` : "∫";
-  return {
+  const base = {
     size: cellSize,
-    fillColor: COLORS.BOX_FILL,
-    borderColor: COLORS.BOX_BORDER,
-    symbol: label,
+    borderWidth: 1.5,
+    symbolFont: `bold ${Math.max(16, cellSize * 0.5)}px "Courier New", Courier, monospace`,
   };
+  switch (box.kind) {
+    case "wall":
+      return {
+        ...base,
+        fillColor: COLORS.WALL_FILL,
+        borderColor: COLORS.WALL_BORDER,
+        symbol: "",
+      };
+    case "prop":
+      return {
+        ...base,
+        fillColor: COLORS.PROP_FILL,
+        borderColor: COLORS.PROP_BORDER,
+        symbol: box.label ?? "?",
+      };
+    case "implication": {
+      const premise = box.label ?? "∙";
+      const conclusion = box.secondary ?? "∙";
+      return {
+        ...base,
+        fillColor: COLORS.IMPLICATION_FILL,
+        borderColor: COLORS.BOX_BORDER,
+        symbol: `${premise}→${conclusion}`,
+        symbolFont: `bold ${Math.max(14, cellSize * 0.4)}px "Courier New", Courier, monospace`,
+      };
+    }
+    case "and": {
+      const left = box.label ?? "?";
+      const right = box.secondary ?? "?";
+      return {
+        ...base,
+        fillColor: COLORS.AND_FILL,
+        borderColor: 0xb094ff,
+        symbol: `${left}∧${right}`,
+        symbolFont: `bold ${Math.max(13, cellSize * 0.38)}px "Courier New", Courier, monospace`,
+      };
+    }
+    case "pi1":
+      return {
+        ...base,
+        fillColor: COLORS.PI_FILL,
+        borderColor: 0x74c0ff,
+        symbol: "π₁",
+      };
+    case "pi2":
+      return {
+        ...base,
+        fillColor: COLORS.PI_FILL,
+        borderColor: 0xff9fdc,
+        symbol: "π₂",
+      };
+    default:
+      return {
+        ...base,
+        fillColor: COLORS.BOX_FILL,
+        borderColor: COLORS.BOX_BORDER,
+        symbol: "?",
+      };
+  }
 };
 
 function drawGrid(
@@ -145,15 +198,28 @@ function renderPlayer(player: PIXI.Container, view: ViewModel) {
 function renderGoals(layer: PIXI.Container, view: ViewModel) {
   layer.removeChildren().forEach((child) => child.destroy(true));
   view.goals.forEach((goal) => {
+    const container = new PIXI.Container();
     const gfx = new PIXI.Graphics();
-    const color = view.isComplete ? COLORS.GOAL_COMPLETE : COLORS.GOAL;
-    gfx.beginFill(color, view.isComplete ? 0.8 : 0.4);
-    const offset = view.cellSize * 0.15;
-    const size = view.cellSize * 0.7;
-    const pixel = toPixels(view.cellSize, goal);
-    gfx.drawRoundedRect(pixel.x + offset, pixel.y + offset, size, size, 6);
+    const color = goal.satisfied ? COLORS.GOAL_COMPLETE : COLORS.GOAL;
+    const alpha = goal.satisfied ? 0.85 : 0.35;
+    gfx.beginFill(color, alpha);
+    const offset = view.cellSize * 0.12;
+    const size = view.cellSize * 0.76;
+    gfx.drawRoundedRect(offset, offset, size, size, 6);
     gfx.endFill();
-    layer.addChild(gfx);
+    const text = new PIXI.Text(goal.prop, {
+      fontFamily: '"Courier New", Courier, monospace',
+      fontSize: Math.max(14, view.cellSize * 0.35),
+      fill: goal.satisfied ? 0x1c1c1c : 0xffffff,
+      align: "center",
+    });
+    text.anchor.set(0.5);
+    text.position.set(view.cellSize / 2, view.cellSize / 2);
+    container.addChild(gfx);
+    container.addChild(text);
+    const pixel = toPixels(view.cellSize, goal.pos);
+    container.position.set(pixel.x, pixel.y);
+    layer.addChild(container);
   });
 }
 

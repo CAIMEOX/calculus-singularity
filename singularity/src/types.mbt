@@ -17,8 +17,14 @@ pub struct Box {
 /// Supported box kinds
 pub enum BoxType {
   Wall
-  Int(Int)
-}
+  Prop(String)
+  Implication(BoxType, BoxType)
+  And(BoxType, BoxType)
+  Neg(BoxType?)
+  Fst
+  Snd
+} derive(Eq)
+
 
 ///|
 /// Internal application state handled entirely inside Moonbit
@@ -29,7 +35,7 @@ pub struct Model {
   gridWidth : Int
   gridHeight : Int
   cellSize : Int
-  goals : Array[Vector]
+  goals : Array[Goal]
   history : Array[Snapshot]
   isComplete : Bool
   backups : Array[BackupNode]
@@ -55,7 +61,7 @@ pub struct ViewModel {
   gridWidth : Int
   gridHeight : Int
   cellSize : Int
-  goals : Array[Vector]
+  goals : Array[GoalView]
   isComplete : Bool
   levelId : Int
   levelName : String
@@ -67,7 +73,21 @@ pub struct BoxView {
   id : Int
   pos : Vector
   kind : String
-  value : Int?
+  label : String?
+  secondary : String?
+}
+
+///|
+pub struct Goal {
+  pos : Vector
+  prop : BoxType
+}
+
+///|
+pub struct GoalView {
+  pos : Vector
+  prop : String
+  satisfied : Bool
 }
 
 ///|
