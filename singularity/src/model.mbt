@@ -152,15 +152,14 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
         }
       }
       Some(box) => {
-        let nextBoxPos = calculate_next_position(box.pos, direction)
-        if !is_in_bounds(nextBoxPos, self.gridSize) ||
-           is_position_occupied_by_other_box(self.boxes, nextBoxPos, box.id) {
+        let (chain, landing) = collect_box_chain(self.boxes, box.pos, direction)
+        if !is_in_bounds(landing, self.gridSize) {
           self
         } else {
           let history = append_snapshot(self.history, self.player, self.boxes)
           {
             player: nextPlayer,
-            boxes: update_box_position(self.boxes, box.id, nextBoxPos),
+            boxes: move_box_chain(self.boxes, chain, direction),
             hoveredBoxId: None,
             gridSize: self.gridSize,
             cellSize: self.cellSize,
@@ -185,19 +184,6 @@ fn is_in_bounds(pos : Vector, gridSize : Int) -> Bool {
   pos.x >= 0 && pos.x < gridSize && pos.y >= 0 && pos.y < gridSize
 }
 
-fn is_position_occupied_by_other_box(boxes : Array[Box], pos : Vector, excludeId : Int) -> Bool {
-  let len = boxes.length()
-  let mut i = 0
-  while i < len {
-    let candidate = boxes[i]
-    if candidate.id != excludeId && same_position(candidate.pos, pos) {
-      return true
-    }
-    i += 1
-  }
-  false
-}
-
 fn find_box_at_position(boxes : Array[Box], pos : Vector) -> Box? {
   let len = boxes.length()
   let mut i = 0
@@ -209,22 +195,6 @@ fn find_box_at_position(boxes : Array[Box], pos : Vector) -> Box? {
     i += 1
   }
   None
-}
-
-fn update_box_position(boxes : Array[Box], boxId : Int, newPos : Vector) -> Array[Box] {
-  let len = boxes.length()
-  let updated = Array::new(capacity=len)
-  let mut i = 0
-  while i < len {
-    let candidate = boxes[i]
-    if candidate.id == boxId {
-      updated.push({ id: candidate.id, pos: newPos, symbol: candidate.symbol })
-    } else {
-      updated.push(candidate)
-    }
-    i += 1
-  }
-  updated
 }
 
 fn has_box(boxes : Array[Box], boxId : Int) -> Bool {
@@ -286,9 +256,53 @@ fn same_position(lhs : Vector, rhs : Vector) -> Bool {
   lhs.x == rhs.x && lhs.y == rhs.y
 }
 
+fn collect_box_chain(boxes : Array[Box], startPos : Vector, direction : Direction) -> (Array[Int], Vector) {
+  let chain : Array[Int] = Array::new()
+  let landing = loop startPos {
+    pos =>
+      match find_box_at_position(boxes, pos) {
+        Some(b) => {
+          chain.push(b.id)
+          continue calculate_next_position(pos, direction)
+        }
+        None => pos
+      }
+  }
+  (chain, landing)
+}
+
+fn move_box_chain(boxes : Array[Box], chain : Array[Int], direction : Direction) -> Array[Box] {
+  let len = boxes.length()
+  let moved = Array::new(capacity=len)
+  let mut i = 0
+  while i < len {
+    let box = boxes[i]
+    if contains_id(chain, box.id) {
+      moved.push({ id: box.id, pos: calculate_next_position(box.pos, direction), symbol: box.symbol })
+    } else {
+      moved.push(box)
+    }
+    i += 1
+  }
+  moved
+}
+
+fn contains_id(ids : Array[Int], target : Int) -> Bool {
+  let len = ids.length()
+  let mut i = 0
+  while i < len {
+    if ids[i] == target {
+      return true
+    }
+    i += 1
+  }
+  false
+}
+
 fn seed_boxes() -> Array[Box] {
-  let boxes : Array[Box] = Array::new(capacity=1)
+  let boxes : Array[Box] = Array::new(capacity=2)
   boxes.push({ id: 1, pos: { x: 3, y: 3 }, symbol: "5" })
+  boxes.push({ id: 2, pos: { x: 5, y: 5 }, symbol: "A" })
   boxes
 }
 
