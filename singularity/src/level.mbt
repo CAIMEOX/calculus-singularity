@@ -316,11 +316,27 @@ pub fn save_to_json(level : Level) -> String {
 ///|
 test "parsing logical expressions" {
   let k1 = compose_kind("A -> B & C")
-  inspect(k1, content="A → (B ∧ C)")
+  @json.inspect(k1, content=[
+    "Implication",
+    ["Prop", "A"],
+    ["And", ["Prop", "B"], ["Prop", "C"]],
+  ])
   let k2 = compose_kind("!A -> fst (B & C)")
-  inspect(k2, content="¬A → π₁((B ∧ C))")
+  @json.inspect(k2, content=[
+    "Implication",
+    ["Neg", [["Prop", "A"]]],
+    ["Fst", [["And", ["Prop", "B"], ["Prop", "C"]]]],
+  ])
   let k3 = compose_kind("A & B & C & D")
-  inspect(k3, content="(((A ∧ B) ∧ C) ∧ D)")
+  @json.inspect(k3, content=[
+    "And",
+    ["And", ["And", ["Prop", "A"], ["Prop", "B"]], ["Prop", "C"]],
+    ["Prop", "D"],
+  ])
   let k4 = compose_kind("snd (A & B) -> !C")
-  inspect(k4, content="π₂((A ∧ B)) → ¬C")
+  @json.inspect(k4, content=[
+    "Implication",
+    ["Snd", [["And", ["Prop", "A"], ["Prop", "B"]]]],
+    ["Neg", [["Prop", "C"]]],
+  ])
 }

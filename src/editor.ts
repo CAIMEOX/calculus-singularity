@@ -7,12 +7,14 @@ import {
   make_and_box,
   make_pi1_box,
   make_pi2_box,
-  make_goal,
   make_negation_box,
   make_negation_box_with_inner,
   style_for_kind,
+  compose_kind,
+  kind_to_label,
+  kind_to_string,
 } from "../singularity/target/js/release/build/cs.js";
-import { Level, LevelBox, LevelGoal, LevelInfo, Vector2 } from "./types";
+import { Level, LevelBox, LevelInfo, Vector2 } from "./types";
 
 type ToolId =
   | "player"
@@ -208,6 +210,63 @@ textarea {
   font-size: 12px;
   color: #8fe8ff;
 }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-panel {
+  width: min(420px, 90vw);
+  background: #111119;
+  border: 1px solid #2d2d34;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+}
+.modal-panel h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #7ae7ff;
+}
+.modal-panel p {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #aaa;
+}
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-form label {
+  font-size: 13px;
+  color: #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modal-form input,
+.modal-form textarea {
+  background: #050509;
+  border: 1px solid #2a2a33;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #d0f8ff;
+  font-family: "Courier New", Courier, monospace;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+.modal-actions button {
+  padding: 6px 14px;
+}
 .editor-cell.selected {
   border-color: #00f0ff;
   box-shadow: 0 0 6px rgba(0, 240, 255, 0.7);
@@ -243,6 +302,102 @@ jsonInput.placeholder = "粘贴 Level JSON...";
 const jsonOutput = document.createElement("textarea");
 jsonOutput.readOnly = true;
 const metadataInputs: Partial<Record<keyof LevelInfo, HTMLInputElement>> = {};
+interface ModalField {
+  name: string;
+  label: string;
+  placeholder?: string;
+  defaultValue?: string;
+  type?: "text" | "number";
+  autofocus?: boolean;
+}
+
+interface ModalOptions {
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  fields: ModalField[];
+}
+
+function openFormModal(
+  options: ModalOptions
+): Promise<Record<string, string> | null> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    const panel = document.createElement("div");
+    panel.className = "modal-panel";
+    const title = document.createElement("h3");
+    title.textContent = options.title;
+    panel.appendChild(title);
+    if (options.description) {
+      const desc = document.createElement("p");
+      desc.textContent = options.description;
+      panel.appendChild(desc);
+    }
+    const form = document.createElement("form");
+    form.className = "modal-form";
+    const inputs: Record<string, HTMLInputElement> = {};
+    options.fields.forEach((field, index) => {
+      const wrapper = document.createElement("label");
+      wrapper.textContent = field.label;
+      const input = document.createElement("input");
+      input.type = field.type ?? "text";
+      input.name = field.name;
+      input.placeholder = field.placeholder ?? "";
+      if (field.defaultValue !== undefined) {
+        input.value = field.defaultValue;
+      }
+      if (index === 0 || field.autofocus) {
+        requestAnimationFrame(() => input.focus());
+      }
+      inputs[field.name] = input;
+      wrapper.appendChild(input);
+      form.appendChild(wrapper);
+    });
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "secondary";
+    cancelBtn.textContent = options.cancelLabel ?? "取消";
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "submit";
+    confirmBtn.textContent = options.confirmLabel ?? "确定";
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    form.appendChild(actions);
+    panel.appendChild(form);
+    overlay.appendChild(panel);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close(null);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    function close(result: Record<string, string> | null) {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.removeChild(overlay);
+      resolve(result);
+    }
+    cancelBtn.addEventListener("click", () => close(null));
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        close(null);
+      }
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data: Record<string, string> = {};
+      options.fields.forEach((field) => {
+        data[field.name] = inputs[field.name].value;
+      });
+      close(data);
+    });
+    document.body.appendChild(overlay);
+  });
+}
 
 function createEmptyLevel(): Level {
   return {
@@ -292,8 +447,10 @@ function clampLevelEntities() {
 
 function setLevel(newLevel: Level) {
   level = cloneLevelData(newLevel);
+  rehydrateLevelKinds(level);
   clampLevelEntities();
   nextBoxId = computeNextBoxId(level.boxes);
+  clearSelectedCell();
   syncMetadataInputs();
   renderAll();
   setStatus("已加载关卡");
@@ -318,6 +475,7 @@ function undoLastEdit() {
     return;
   }
   level = cloneLevelData(snapshot);
+  rehydrateLevelKinds(level);
   clampLevelEntities();
   nextBoxId = computeNextBoxId(level.boxes);
   renderAll();
@@ -344,7 +502,7 @@ function clearCell(x: number, y: number) {
   }
 }
 
-function handleDrop(tool: ToolId, x: number, y: number) {
+async function handleDrop(tool: ToolId, x: number, y: number) {
   if (tool === "erase") {
     if (
       !boxAt(x, y) &&
@@ -372,42 +530,79 @@ function handleDrop(tool: ToolId, x: number, y: number) {
     return;
   }
   if (tool === "goal") {
-    const prop = prompt("Goal 需要的命题", "A");
-    if (!prop) return;
+    const existingGoal = goalAt(x, y);
+    const parsed = await promptForKindInput({
+      title: "Goal 目标",
+      description: "输入逻辑表达式，例如 A & B、A -> !B、fst (A & B)",
+      defaultValue: existingGoal ? kind_to_label(existingGoal.prop) : "A",
+      confirmLabel: "保存 Goal",
+    });
+    if (!parsed) {
+      return;
+    }
     pushHistory();
-    const newGoal = make_goal(x, y, prop) as LevelGoal;
     level.goals = level.goals.filter(
       (goal) => !(goal.pos.x === x && goal.pos.y === y)
     );
-    level.goals.push(newGoal);
+    level.goals.push({
+      pos: { x, y },
+      prop: parsed,
+    });
     setSelectedCell(x, y);
     renderAll();
     return;
   }
+  const existingBox = boxAt(x, y);
+  const id = existingBox ? existingBox.id : nextBoxId;
+  let allocateNewId = !existingBox;
   let builderResult: LevelBox | null = null;
-  const id = boxAt(x, y)?.id ?? nextBoxId++;
   switch (tool) {
     case "wall":
       builderResult = make_wall(id, x, y) as LevelBox;
       break;
     case "prop": {
-      const label = prompt("命题名称", "A");
+      const label = await promptForTextInput({
+        title: "命题块",
+        description: "输入命题名称，例如 A、Goal、tmp1",
+        label: "命题名称",
+        placeholder: "A",
+        defaultValue: "A",
+        confirmLabel: "放置命题",
+      });
       if (!label) {
-        nextBoxId = Math.max(nextBoxId - 1, 1);
         return;
       }
       builderResult = make_prop_box(id, x, y, label) as LevelBox;
       break;
     }
     case "implication": {
-      const premise = prompt("前件 A", "A");
-      if (!premise) {
-        nextBoxId = Math.max(nextBoxId - 1, 1);
+      const form = await openFormModal({
+        title: "蕴涵块",
+        description: "填写前件与后件，例如：前件 A，后件 B",
+        confirmLabel: "放置蕴涵",
+        fields: [
+          {
+            name: "premise",
+            label: "前件",
+            placeholder: "A",
+            defaultValue: "A",
+            autofocus: true,
+          },
+          {
+            name: "conclusion",
+            label: "后件",
+            placeholder: "B",
+            defaultValue: "B",
+          },
+        ],
+      });
+      if (!form) {
         return;
       }
-      const conclusion = prompt("后件 B", "B");
-      if (!conclusion) {
-        nextBoxId = Math.max(nextBoxId - 1, 1);
+      const premise = form.premise?.trim();
+      const conclusion = form.conclusion?.trim();
+      if (!premise || !conclusion) {
+        setStatus("请输入前件与后件", true);
         return;
       }
       builderResult = make_implication_box(
@@ -420,14 +615,33 @@ function handleDrop(tool: ToolId, x: number, y: number) {
       break;
     }
     case "and": {
-      const left = prompt("左侧命题", "A");
-      if (!left) {
-        nextBoxId = Math.max(nextBoxId - 1, 1);
+      const form = await openFormModal({
+        title: "合取块",
+        description: "填写左右命题，例如：左侧 A，右侧 B",
+        confirmLabel: "放置合取",
+        fields: [
+          {
+            name: "left",
+            label: "左侧命题",
+            placeholder: "A",
+            defaultValue: "A",
+            autofocus: true,
+          },
+          {
+            name: "right",
+            label: "右侧命题",
+            placeholder: "B",
+            defaultValue: "B",
+          },
+        ],
+      });
+      if (!form) {
         return;
       }
-      const right = prompt("右侧命题", "B");
-      if (!right) {
-        nextBoxId = Math.max(nextBoxId - 1, 1);
+      const left = form.left?.trim();
+      const right = form.right?.trim();
+      if (!left || !right) {
+        setStatus("请输入左右命题", true);
         return;
       }
       builderResult = make_and_box(id, x, y, left, right) as LevelBox;
@@ -440,7 +654,24 @@ function handleDrop(tool: ToolId, x: number, y: number) {
       builderResult = make_pi2_box(id, x, y) as LevelBox;
       break;
     case "neg": {
-      const inner = prompt("可选：否定命题", "");
+      const form = await openFormModal({
+        title: "否定块",
+        description: "可选输入被否定命题，留空表示通用否定",
+        confirmLabel: "放置否定",
+        fields: [
+          {
+            name: "inner",
+            label: "被否定的命题（可选）",
+            placeholder: "例如 A",
+            defaultValue: "",
+            autofocus: true,
+          },
+        ],
+      });
+      if (!form) {
+        return;
+      }
+      const inner = form.inner?.trim();
       builderResult = inner
         ? (make_negation_box_with_inner(id, x, y, inner) as LevelBox)
         : (make_negation_box(id, x, y) as LevelBox);
@@ -455,103 +686,47 @@ function handleDrop(tool: ToolId, x: number, y: number) {
     (box) => !(box.pos.x === x && box.pos.y === y)
   );
   level.boxes.push(builderResult);
-  nextBoxId = computeNextBoxId(level.boxes);
+  if (allocateNewId) {
+    nextBoxId = id + 1;
+  } else {
+    nextBoxId = computeNextBoxId(level.boxes);
+  }
   setSelectedCell(x, y);
   setStatus(`放置 ${TOOLBAR.find((t) => t.id === tool)?.label ?? "元素"}`);
   renderAll();
 }
 
-function kindToLabel(kind: any): string {
-  if (!kind) return "";
-  switch (kind.$tag) {
-    case 0:
-      return "Wall";
-    case 1:
-      return kind._0 ?? "Prop";
-    case 2:
-      return `${kindToLabel(kind._0)}→${kindToLabel(kind._1)}`;
-    case 3:
-      return `${kindToLabel(kind._0)}∧${kindToLabel(kind._1)}`;
-    case 4:
-      return `¬${kind._0 ? `(${kindToLabel(kind._0)})` : ""}`;
-    case 5:
-      return "π₁";
-    case 6:
-      return "π₂";
-    default:
-      return "?";
-  }
-}
-
-function editBoxAt(x: number, y: number) {
+async function editBoxAt(x: number, y: number): Promise<boolean> {
   const box = boxAt(x, y);
   if (!box) return false;
-  switch (box.kind?.$tag) {
-    case 1: {
-      const label = prompt("命题名称", box.kind._0 ?? "A");
-      if (!label) return false;
-      pushHistory();
-      const newBox = make_prop_box(box.id, x, y, label) as LevelBox;
-      replaceBox(box, newBox);
-      return true;
-    }
-    case 2: {
-      const premise = prompt("前件", kindToLabel(box.kind._0) || "A");
-      if (!premise) return false;
-      const conclusion = prompt("后件", kindToLabel(box.kind._1) || "B");
-      if (!conclusion) return false;
-      pushHistory();
-      const newBox = make_implication_box(
-        box.id,
-        x,
-        y,
-        premise,
-        conclusion
-      ) as LevelBox;
-      replaceBox(box, newBox);
-      return true;
-    }
-    case 3: {
-      const left = prompt("左命题", kindToLabel(box.kind._0) || "A");
-      if (!left) return false;
-      const right = prompt("右命题", kindToLabel(box.kind._1) || "B");
-      if (!right) return false;
-      pushHistory();
-      const newBox = make_and_box(box.id, x, y, left, right) as LevelBox;
-      replaceBox(box, newBox);
-      return true;
-    }
-    case 4: {
-      const inner = prompt(
-        "可选：否定内部命题",
-        box.kind._0 ? kindToLabel(box.kind._0) : ""
-      );
-      pushHistory();
-      const newBox = inner
-        ? (make_negation_box_with_inner(box.id, x, y, inner) as LevelBox)
-        : (make_negation_box(box.id, x, y) as LevelBox);
-      replaceBox(box, newBox);
-      return true;
-    }
-    default:
-      setStatus("此类型无需编辑");
+  const parsed = await promptForKindInput({
+    title: "编辑方块 Kind",
+    description: "输入逻辑表达式，例如 A -> B、!(A & B)、fst (A & B)",
+    defaultValue: kind_to_string(box.kind),
+    confirmLabel: "保存方块",
+  });
+  if (!parsed || parsed.$tag === 0) {
+    return false;
   }
-  return false;
+  pushHistory();
+  box.kind = parsed._0;
+  return true;
 }
 
-function replaceBox(oldBox: LevelBox, newBox: LevelBox) {
-  level.boxes = level.boxes.map((box) => (box === oldBox ? newBox : box));
-}
-
-function editGoalAt(x: number, y: number) {
+async function editGoalAt(x: number, y: number): Promise<boolean> {
   const goal = goalAt(x, y);
   if (!goal) return false;
-  const current = kindToLabel(goal.prop);
-  const nextLabel = prompt("Goal 命题", current || "A");
-  if (!nextLabel) return false;
+  const parsed = await promptForKindInput({
+    title: "编辑 Goal",
+    description: "输入逻辑表达式，例如 A、A & B、!fst X",
+    defaultValue: kind_to_string(goal.prop),
+    confirmLabel: "保存 Goal",
+  });
+  if (!parsed || parsed.$tag === 0) {
+    return false;
+  }
   pushHistory();
-  const newGoal = make_goal(x, y, nextLabel) as LevelGoal;
-  level.goals = level.goals.map((g) => (g === goal ? newGoal : g));
+  goal.prop = parsed;
   return true;
 }
 
@@ -579,24 +754,28 @@ function renderGrid() {
         const data = event.dataTransfer?.getData(TOOL_DATA);
         if (!data) return;
         const tool = data as ToolId;
-        handleDrop(tool, x, y);
+        void handleDrop(tool, x, y);
       });
       cell.addEventListener("click", () => {
         setSelectedCell(x, y);
       });
       cell.addEventListener("dblclick", () => {
-        setSelectedCell(x, y);
-        if (boxAt(x, y)) {
-          if (editBoxAt(x, y)) {
-            renderAll();
+        void (async () => {
+          setSelectedCell(x, y);
+          if (boxAt(x, y)) {
+            if (await editBoxAt(x, y)) {
+              renderAll();
+              setStatus("已更新方块 Kind");
+            }
+          } else if (goalAt(x, y)) {
+            if (await editGoalAt(x, y)) {
+              renderAll();
+              setStatus("已更新 Goal");
+            }
+          } else {
+            await handleDrop("player", x, y);
           }
-        } else if (goalAt(x, y)) {
-          if (editGoalAt(x, y)) {
-            renderAll();
-          }
-        } else {
-          handleDrop("player", x, y);
-        }
+        })();
       });
 
       const box = boxAt(x, y);
@@ -606,17 +785,25 @@ function renderGrid() {
         boxNode.className = "editor-box";
         boxNode.style.background = toHex(style.fillColor);
         boxNode.style.border = `2px solid ${toHex(style.borderColor)}`;
-        boxNode.textContent =
-          style.symbol && style.symbol.trim().length
+        const symbolText =
+          typeof style.symbol === "string"
             ? style.symbol
-            : kindToLabel(box.kind);
+            : style.symbol === undefined || style.symbol === null
+            ? ""
+            : String(style.symbol);
+        boxNode.textContent =
+          symbolText.trim().length > 0 ? symbolText : kind_to_label(box.kind);
         boxNode.setAttribute("draggable", "true");
         boxNode.addEventListener("dragstart", (event) => {
           event.dataTransfer?.setData(
             CELL_DATA,
             JSON.stringify({ type: "box", x, y })
           );
-          event.dataTransfer?.setDragImage(boxNode, style.size / 2, style.size / 2);
+          event.dataTransfer?.setDragImage(
+            boxNode,
+            style.size / 2,
+            style.size / 2
+          );
         });
         cell.appendChild(boxNode);
       }
@@ -625,14 +812,18 @@ function renderGrid() {
       if (goal) {
         const goalNode = document.createElement("div");
         goalNode.className = "editor-goal";
-        goalNode.textContent = kindToLabel(goal.prop);
+        goalNode.textContent = kind_to_label(goal.prop);
         goalNode.setAttribute("draggable", "true");
         goalNode.addEventListener("dragstart", (event) => {
           event.dataTransfer?.setData(
             CELL_DATA,
             JSON.stringify({ type: "goal", x, y })
           );
-          event.dataTransfer?.setDragImage(goalNode, goalNode.clientWidth / 2, goalNode.clientHeight / 2);
+          event.dataTransfer?.setDragImage(
+            goalNode,
+            goalNode.clientWidth / 2,
+            goalNode.clientHeight / 2
+          );
         });
         cell.appendChild(goalNode);
       }
@@ -813,7 +1004,10 @@ function renderIoPanel() {
         return;
       }
       const parsed = load_from_json(jsonInput.value);
-      setLevel(parsed as Level);
+      if (!parsed || parsed.$tag !== 0) {
+        throw new Error("无效的 Level JSON");
+      }
+      setLevel(parsed._0 as Level);
       clearSelectedCell();
     } catch (error) {
       console.error(error);
@@ -911,21 +1105,21 @@ function deleteSelectedCell() {
   setStatus("已删除选中节点");
 }
 
-function editSelectedCell() {
+async function editSelectedCell() {
   if (!selectedCell) {
     setStatus("请选择要编辑的节点", true);
     return;
   }
   const { x, y } = selectedCell;
   if (boxAt(x, y)) {
-    if (editBoxAt(x, y)) {
+    if (await editBoxAt(x, y)) {
       renderAll();
       setStatus("已编辑选中的方块");
     }
     return;
   }
   if (goalAt(x, y)) {
-    if (editGoalAt(x, y)) {
+    if (await editGoalAt(x, y)) {
       renderAll();
       setStatus("已编辑选中的 Goal");
     }
@@ -935,7 +1129,11 @@ function editSelectedCell() {
 }
 
 function isCellEmpty(x: number, y: number) {
-  return !boxAt(x, y) && !goalAt(x, y) && !(level.player.x === x && level.player.y === y);
+  return (
+    !boxAt(x, y) &&
+    !goalAt(x, y) &&
+    !(level.player.x === x && level.player.y === y)
+  );
 }
 
 interface DragPayload {
@@ -1004,6 +1202,105 @@ function placeWallShortcut() {
   renderAll();
 }
 
+interface TextPromptOptions {
+  title: string;
+  description?: string;
+  label: string;
+  placeholder?: string;
+  defaultValue?: string;
+  confirmLabel?: string;
+  allowEmpty?: boolean;
+}
+
+async function promptForTextInput(
+  options: TextPromptOptions
+): Promise<string | null> {
+  let initial = options.defaultValue ?? "";
+  while (true) {
+    const result = await openFormModal({
+      title: options.title,
+      description: options.description,
+      confirmLabel: options.confirmLabel,
+      fields: [
+        {
+          name: "value",
+          label: options.label,
+          placeholder: options.placeholder,
+          defaultValue: initial,
+          autofocus: true,
+        },
+      ],
+    });
+    if (!result) {
+      return null;
+    }
+    const value = result.value?.trim() ?? "";
+    if (!value && !options.allowEmpty) {
+      setStatus("请输入内容", true);
+      initial = "";
+      continue;
+    }
+    return value;
+  }
+}
+
+interface KindPromptOptions {
+  title: string;
+  description?: string;
+  defaultValue?: string;
+  confirmLabel?: string;
+}
+
+async function promptForKindInput(
+  options: KindPromptOptions
+): Promise<any | null> {
+  let initial = options.defaultValue ?? "";
+  while (true) {
+    const result = await openFormModal({
+      title: options.title,
+      description:
+        options.description ?? "语法：使用 !、&、->、fst、snd 以及括号组合命题",
+      confirmLabel: options.confirmLabel ?? "确定",
+      fields: [
+        {
+          name: "expression",
+          label: "逻辑表达式",
+          placeholder: "例如 A -> (B & !C)",
+          defaultValue: initial,
+          autofocus: true,
+        },
+      ],
+    });
+    if (!result) {
+      return null;
+    }
+    const expr = result.expression?.trim() ?? "";
+    if (!expr) {
+      setStatus("请输入逻辑表达式", true);
+      initial = "";
+      continue;
+    }
+    try {
+      return compose_kind(expr);
+    } catch (error) {
+      console.error(error);
+      setStatus("解析失败，请检查语法", true);
+      initial = expr;
+    }
+  }
+}
+
+function rehydrateLevelKinds(target: Level) {
+  target.boxes = target.boxes.map((box) => ({
+    ...box,
+    kind: compose_kind(kind_to_string(box.kind)),
+  }));
+  target.goals = target.goals.map((goal) => ({
+    ...goal,
+    prop: compose_kind(kind_to_string(goal.prop)),
+  }));
+}
+
 function isTypingTarget(el: Element | null) {
   return (
     el instanceof HTMLInputElement ||
@@ -1028,7 +1325,7 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.key === "e" || event.key === "E") {
     event.preventDefault();
-    editSelectedCell();
+    void editSelectedCell();
     return;
   }
   if (event.key === "w" || event.key === "W") {
@@ -1054,7 +1351,7 @@ function init() {
 
   layout.appendChild(left);
   layout.appendChild(toolbarContainer);
-  root.appendChild(layout);
+  root?.appendChild(layout);
 
   renderAll();
 }

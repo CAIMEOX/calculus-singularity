@@ -54,6 +54,49 @@ pub impl Show for Box with output(self, f) {
 const STYLE_HOVERED : String = "font-weight: bold; color: #00FFFF;"
 
 ///|
+pub fn kind_to_label(kind : Kind) -> String {
+  match kind {
+    Prop(label) => label
+    Implication(_, _) => "→".to_string()
+    And(_, _) => "∧".to_string()
+    Fst(_) => "π₁".to_string()
+    Snd(_) => "π₂".to_string()
+    Neg(_) => "¬".to_string()
+    Wall => "Wall".to_string()
+  }
+}
+
+///|
+pub fn kind_to_string(kind : Kind) -> String {
+  match kind {
+    Wall => "Wall"
+    Prop(label) => "\{label}"
+    Implication(premise, conclusion) => {
+      let norm_p = if premise is Implication(_, _) {
+        "(\{premise})"
+      } else {
+        "\{premise}"
+      }
+      let norm_c = if conclusion is Implication(_, _) {
+        "(\{conclusion})"
+      } else {
+        "\{conclusion}"
+      }
+      "\{norm_p} -> \{norm_c}"
+    }
+    And(left, right) => "(\{left} & \{right})"
+    Fst(Some(expr)) => "fst (\{expr})"
+    Fst(None) => "fst"
+    Snd(Some(expr)) => "snd (\{expr})"
+    Snd(None) => "snd"
+    Neg(Some(Neg(Some(x)))) => x.to_string()
+    Neg(Some(Prop(label))) => "!\{label}"
+    Neg(None) => "!"
+    Neg(Some(inner)) => "!(\{inner})"
+  }
+}
+
+///|
 fn compose_hovered(s : String) -> String {
   "<span style=\"\{STYLE_HOVERED}\">\{s}</span>"
 }

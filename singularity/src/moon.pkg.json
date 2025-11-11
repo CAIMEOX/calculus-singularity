@@ -1,6 +1,6 @@
 {
-    "link":{
-        "js":{
+    "link": {
+        "js": {
             "exports": [
                 "init_model",
                 "init_model_for",
@@ -27,7 +27,9 @@
                 "make_goal",
                 "make_negation_box",
                 "make_negation_box_with_inner",
-                "compose_kind"
+                "compose_kind",
+                "kind_to_label",
+                "kind_to_string"
             ]
         }
     }
