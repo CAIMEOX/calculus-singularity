@@ -207,6 +207,10 @@ textarea {
   font-size: 12px;
   color: #8fe8ff;
 }
+.editor-cell.selected {
+  border-color: #00f0ff;
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.7);
+}
 `;
 
 const styleTag = document.createElement("style");
@@ -220,6 +224,9 @@ if (!root) {
 
 let level: Level = createEmptyLevel();
 let nextBoxId = 1;
+let selectedCell: Vector2 | null = null;
+const undoStack: Level[] = [];
+const MAX_HISTORY = 50;
 
 const statusLine = document.createElement("div");
 statusLine.className = "status-line";
@@ -255,6 +262,13 @@ function computeNextBoxId(boxes: LevelBox[]): number {
   return boxes.reduce((max, box) => Math.max(max, box.id), 0) + 1;
 }
 
+function cloneLevelData(value: Level): Level {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
 function clampLevelEntities() {
   const { gridWidth, gridHeight } = level.info;
   level.player.x = Math.min(Math.max(level.player.x, 0), gridWidth - 1);
@@ -276,7 +290,7 @@ function clampLevelEntities() {
 }
 
 function setLevel(newLevel: Level) {
-  level = newLevel;
+  level = cloneLevelData(newLevel);
   clampLevelEntities();
   nextBoxId = computeNextBoxId(level.boxes);
   syncMetadataInputs();
@@ -287,6 +301,26 @@ function setLevel(newLevel: Level) {
 function setStatus(text: string, isError = false) {
   statusLine.textContent = text;
   statusLine.style.color = isError ? "#ff7b7b" : "#8fe8ff";
+}
+
+function pushHistory() {
+  undoStack.push(cloneLevelData(level));
+  if (undoStack.length > MAX_HISTORY) {
+    undoStack.shift();
+  }
+}
+
+function undoLastEdit() {
+  const snapshot = undoStack.pop();
+  if (!snapshot) {
+    setStatus("没有可撤销的操作");
+    return;
+  }
+  level = cloneLevelData(snapshot);
+  clampLevelEntities();
+  nextBoxId = computeNextBoxId(level.boxes);
+  renderAll();
+  setStatus("已撤销上一次编辑");
 }
 
 function boxAt(x: number, y: number) {
@@ -311,28 +345,46 @@ function clearCell(x: number, y: number) {
 
 function handleDrop(tool: ToolId, x: number, y: number) {
   if (tool === "erase") {
+    if (
+      !boxAt(x, y) &&
+      !goalAt(x, y) &&
+      !(level.player.x === x && level.player.y === y)
+    ) {
+      setSelectedCell(x, y);
+      return;
+    }
+    pushHistory();
     clearCell(x, y);
+    setSelectedCell(x, y);
     renderAll();
     return;
   }
   if (tool === "player") {
+    if (level.player.x === x && level.player.y === y) {
+      setSelectedCell(x, y);
+      return;
+    }
+    pushHistory();
     level.player = { x, y };
+    setSelectedCell(x, y);
     renderAll();
     return;
   }
   if (tool === "goal") {
     const prop = prompt("Goal 需要的命题", "A");
     if (!prop) return;
+    pushHistory();
     const newGoal = make_goal(x, y, prop) as LevelGoal;
     level.goals = level.goals.filter(
       (goal) => !(goal.pos.x === x && goal.pos.y === y)
     );
     level.goals.push(newGoal);
+    setSelectedCell(x, y);
     renderAll();
     return;
   }
   let builderResult: LevelBox | null = null;
-  const id = (boxAt(x, y)?.id) ?? nextBoxId++;
+  const id = boxAt(x, y)?.id ?? nextBoxId++;
   switch (tool) {
     case "wall":
       builderResult = make_wall(id, x, y) as LevelBox;
@@ -397,11 +449,14 @@ function handleDrop(tool: ToolId, x: number, y: number) {
   if (!builderResult) {
     return;
   }
+  pushHistory();
   level.boxes = level.boxes.filter(
     (box) => !(box.pos.x === x && box.pos.y === y)
   );
   level.boxes.push(builderResult);
   nextBoxId = computeNextBoxId(level.boxes);
+  setSelectedCell(x, y);
+  setStatus(`放置 ${TOOLBAR.find((t) => t.id === tool)?.label ?? "元素"}`);
   renderAll();
 }
 
@@ -429,20 +484,22 @@ function kindToLabel(kind: any): string {
 
 function editBoxAt(x: number, y: number) {
   const box = boxAt(x, y);
-  if (!box) return;
+  if (!box) return false;
   switch (box.kind?.$tag) {
     case 1: {
       const label = prompt("命题名称", box.kind._0 ?? "A");
-      if (!label) return;
+      if (!label) return false;
+      pushHistory();
       const newBox = make_prop_box(box.id, x, y, label) as LevelBox;
       replaceBox(box, newBox);
-      break;
+      return true;
     }
     case 2: {
       const premise = prompt("前件", kindToLabel(box.kind._0) || "A");
-      if (!premise) return;
+      if (!premise) return false;
       const conclusion = prompt("后件", kindToLabel(box.kind._1) || "B");
-      if (!conclusion) return;
+      if (!conclusion) return false;
+      pushHistory();
       const newBox = make_implication_box(
         box.id,
         x,
@@ -451,32 +508,34 @@ function editBoxAt(x: number, y: number) {
         conclusion
       ) as LevelBox;
       replaceBox(box, newBox);
-      break;
+      return true;
     }
     case 3: {
       const left = prompt("左命题", kindToLabel(box.kind._0) || "A");
-      if (!left) return;
+      if (!left) return false;
       const right = prompt("右命题", kindToLabel(box.kind._1) || "B");
-      if (!right) return;
+      if (!right) return false;
+      pushHistory();
       const newBox = make_and_box(box.id, x, y, left, right) as LevelBox;
       replaceBox(box, newBox);
-      break;
+      return true;
     }
     case 4: {
       const inner = prompt(
         "可选：否定内部命题",
         box.kind._0 ? kindToLabel(box.kind._0) : ""
       );
+      pushHistory();
       const newBox = inner
         ? (make_negation_box_with_inner(box.id, x, y, inner) as LevelBox)
         : (make_negation_box(box.id, x, y) as LevelBox);
       replaceBox(box, newBox);
-      break;
+      return true;
     }
     default:
       setStatus("此类型无需编辑");
   }
-  renderAll();
+  return false;
 }
 
 function replaceBox(oldBox: LevelBox, newBox: LevelBox) {
@@ -485,13 +544,14 @@ function replaceBox(oldBox: LevelBox, newBox: LevelBox) {
 
 function editGoalAt(x: number, y: number) {
   const goal = goalAt(x, y);
-  if (!goal) return;
+  if (!goal) return false;
   const current = kindToLabel(goal.prop);
   const nextLabel = prompt("Goal 命题", current || "A");
-  if (!nextLabel) return;
+  if (!nextLabel) return false;
+  pushHistory();
   const newGoal = make_goal(x, y, nextLabel) as LevelGoal;
   level.goals = level.goals.map((g) => (g === goal ? newGoal : g));
-  renderAll();
+  return true;
 }
 
 function renderGrid() {
@@ -515,11 +575,19 @@ function renderGrid() {
         const tool = data as ToolId;
         handleDrop(tool, x, y);
       });
+      cell.addEventListener("click", () => {
+        setSelectedCell(x, y);
+      });
       cell.addEventListener("dblclick", () => {
+        setSelectedCell(x, y);
         if (boxAt(x, y)) {
-          editBoxAt(x, y);
+          if (editBoxAt(x, y)) {
+            renderAll();
+          }
         } else if (goalAt(x, y)) {
-          editGoalAt(x, y);
+          if (editGoalAt(x, y)) {
+            renderAll();
+          }
         } else {
           handleDrop("player", x, y);
         }
@@ -554,9 +622,14 @@ function renderGrid() {
         cell.appendChild(playerNode);
       }
 
+      if (selectedCell && selectedCell.x === x && selectedCell.y === y) {
+        cell.classList.add("selected");
+      }
+
       gridContainer.appendChild(cell);
     }
   }
+  updateSelectionStyles();
 }
 
 function toHex(value: number) {
@@ -640,11 +713,12 @@ function renderMetadataPanel() {
   resetBtn.textContent = "新建";
   buttonRow.appendChild(applyBtn);
   buttonRow.appendChild(resetBtn);
+  form.appendChild(buttonRow);
   panel.appendChild(form);
-  panel.appendChild(buttonRow);
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
+    pushHistory();
     level.info = {
       id: Number(metadataInputs.id?.value) || level.info.id,
       name: metadataInputs.name?.value || level.info.name,
@@ -710,6 +784,7 @@ function renderIoPanel() {
       }
       const parsed = load_from_json(jsonInput.value);
       setLevel(parsed as Level);
+      clearSelectedCell();
     } catch (error) {
       console.error(error);
       setStatus("加载 JSON 失败，请检查格式", true);
@@ -755,6 +830,107 @@ function syncMetadataInputs() {
     metadataInputs.cellSize.value = String(level.info.cellSize);
   }
 }
+
+function setSelectedCell(x: number, y: number) {
+  selectedCell = { x, y };
+  updateSelectionStyles();
+}
+
+function clearSelectedCell() {
+  selectedCell = null;
+  updateSelectionStyles();
+}
+
+function updateSelectionStyles() {
+  const cells = gridContainer.querySelectorAll(".editor-cell");
+  cells.forEach((cell) => {
+    const x = Number(cell.getAttribute("data-x"));
+    const y = Number(cell.getAttribute("data-y"));
+    const isActive =
+      selectedCell && selectedCell.x === x && selectedCell.y === y;
+    cell.classList.toggle("selected", Boolean(isActive));
+  });
+}
+
+function deleteSelectedCell() {
+  if (!selectedCell) {
+    setStatus("请选择要删除的节点", true);
+    return;
+  }
+  const { x, y } = selectedCell;
+  const hasBox = boxAt(x, y);
+  const hasGoal = goalAt(x, y);
+  const hasPlayer = level.player.x === x && level.player.y === y;
+  if (!hasBox && !hasGoal && !hasPlayer) {
+    setStatus("该格没有可删除的节点", true);
+    return;
+  }
+  pushHistory();
+  if (hasBox) {
+    level.boxes = level.boxes.filter(
+      (box) => !(box.pos.x === x && box.pos.y === y)
+    );
+  } else if (hasGoal) {
+    level.goals = level.goals.filter(
+      (goal) => !(goal.pos.x === x && goal.pos.y === y)
+    );
+  } else if (hasPlayer) {
+    level.player = { x: 0, y: 0 };
+  }
+  renderAll();
+  setStatus("已删除选中节点");
+}
+
+function editSelectedCell() {
+  if (!selectedCell) {
+    setStatus("请选择要编辑的节点", true);
+    return;
+  }
+  const { x, y } = selectedCell;
+  if (boxAt(x, y)) {
+    if (editBoxAt(x, y)) {
+      renderAll();
+      setStatus("已编辑选中的方块");
+    }
+    return;
+  }
+  if (goalAt(x, y)) {
+    if (editGoalAt(x, y)) {
+      renderAll();
+      setStatus("已编辑选中的 Goal");
+    }
+    return;
+  }
+  setStatus("该格没有可编辑的节点", true);
+}
+
+function isTypingTarget(el: Element | null) {
+  return (
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLTextAreaElement ||
+    (el as HTMLElement | null)?.isContentEditable
+  );
+}
+
+window.addEventListener("keydown", (event) => {
+  if (isTypingTarget(document.activeElement)) {
+    return;
+  }
+  if (event.key === "z" || event.key === "Z") {
+    event.preventDefault();
+    undoLastEdit();
+    return;
+  }
+  if (event.key === "d" || event.key === "D") {
+    event.preventDefault();
+    deleteSelectedCell();
+    return;
+  }
+  if (event.key === "e" || event.key === "E") {
+    event.preventDefault();
+    editSelectedCell();
+  }
+});
 
 function init() {
   const layout = document.createElement("div");
