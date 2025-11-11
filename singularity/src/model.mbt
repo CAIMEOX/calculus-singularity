@@ -1,68 +1,5 @@
-///| Core 2D vector used for grid coordinates
-pub struct Vector {
-  x : Int
-  y : Int
-}
-
-///| Box entity that can be pushed around by the player
-pub struct Box {
-  id : Int
-  pos : Vector
-  kind : BoxType
-}
-
-///| Supported box kinds
-pub enum BoxType {
-  Wall
-  Int(Int)
-}
-
-///| Internal application state handled entirely inside Moonbit
-pub struct Model {
-  player : Vector
-  boxes : Array[Box]
-  hoveredBoxId : Int?
-  gridSize : Int
-  cellSize : Int
-  goals : Array[Vector]
-  history : Array[Snapshot]
-  isComplete : Bool
-}
-
-///| Snapshot used for undo
-pub struct Snapshot {
-  player : Vector
-  boxes : Array[Box]
-}
-
-///| Render-ready snapshot returned to the TypeScript renderer
-pub struct ViewModel {
-  player : Vector
-  boxes : Array[BoxView]
-  hoveredBoxId : Int?
-  gridSize : Int
-  cellSize : Int
-  goals : Array[Vector]
-  isComplete : Bool
-}
-
-///| Shape sent to the renderer for each box
-pub struct BoxView {
-  id : Int
-  pos : Vector
-  kind : String
-  value : Int?
-}
-
-///| Supported move directions for the Elm style update loop
-enum Direction {
-  Up
-  Down
-  Left
-  Right
-}
-
-///| Map DOM keyboard input to logical directions
+///|
+/// Map DOM keyboard input to logical directions
 fn Direction::from_key(key : String) -> Direction? {
   match key {
     "ArrowUp" | "w" => Some(Up)
@@ -73,7 +10,8 @@ fn Direction::from_key(key : String) -> Direction? {
   }
 }
 
-///| Initialize the core model
+///|
+/// Initialize the core model
 pub fn init_model() -> Model {
   let boxes = seed_boxes()
   let goals = seed_goals()
@@ -89,7 +27,8 @@ pub fn init_model() -> Model {
   }
 }
 
-///| Entry point for keyboard events coming from the Pixi layer
+///|
+/// Entry point for keyboard events coming from the Pixi layer
 pub fn move_with_key(model : Model, key : String) -> Model {
   match Direction::from_key(key) {
     Some(direction) => model.step(direction)
@@ -97,7 +36,8 @@ pub fn move_with_key(model : Model, key : String) -> Model {
   }
 }
 
-///| Hover handler used by Box mouse events
+///|
+/// Hover handler used by Box mouse events
 pub fn hover_box(model : Model, boxId : Int) -> Model {
   if has_box(model.boxes, boxId) {
     {
@@ -115,7 +55,8 @@ pub fn hover_box(model : Model, boxId : Int) -> Model {
   }
 }
 
-///| Reset hover state when the mouse leaves a box
+///|
+/// Reset hover state when the mouse leaves a box
 pub fn clear_hover(model : Model) -> Model {
   {
     player: model.player,
@@ -129,7 +70,8 @@ pub fn clear_hover(model : Model) -> Model {
   }
 }
 
-///| Pure View function that exposes data for rendering
+///|
+/// Pure View function that exposes data for rendering
 pub fn view(model : Model) -> ViewModel {
   {
     player: model.player,
@@ -142,7 +84,8 @@ pub fn view(model : Model) -> ViewModel {
   }
 }
 
-///| Undo the last move if history is available
+///|
+/// Undo the last move if history is available
 pub fn undo(model : Model) -> Model {
   let len = model.history.length()
   if len == 0 {
@@ -164,7 +107,8 @@ pub fn undo(model : Model) -> Model {
   }
 }
 
-///| Core Elm update logic, implemented in Moonbit
+///|
+/// Core Elm update logic, implemented in Moonbit
 pub fn Model::step(self : Model, direction : Direction) -> Model {
   let nextPlayer = calculate_next_position(self.player, direction)
   if !is_in_bounds(nextPlayer, self.gridSize) {
@@ -185,9 +129,31 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
         }
       }
       Some(box) => {
-        let (chain, landing, blocked) = collect_box_chain(self.boxes, box.pos, direction)
+        let (chain, landing, blocked) = collect_box_chain(
+          self.boxes,
+          box.pos,
+          direction,
+        )
         if blocked || !is_in_bounds(landing, self.gridSize) {
-          self
+          let (merged_boxes, merged) = merge_chain_if_possible(
+            self.boxes,
+            chain,
+          )
+          if merged {
+            let history = append_snapshot(self.history, self.player, self.boxes)
+            {
+              player: nextPlayer,
+              boxes: merged_boxes,
+              hoveredBoxId: None,
+              gridSize: self.gridSize,
+              cellSize: self.cellSize,
+              history,
+              goals: self.goals,
+              isComplete: goals_completed(merged_boxes, self.goals),
+            }
+          } else {
+            self
+          }
         } else {
           let history = append_snapshot(self.history, self.player, self.boxes)
           let moved_boxes = move_box_chain(self.boxes, chain, direction)
@@ -207,6 +173,7 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
   }
 }
 
+///|
 fn calculate_next_position(pos : Vector, direction : Direction) -> Vector {
   match direction {
     Up => { x: pos.x, y: pos.y - 1 }
@@ -216,10 +183,12 @@ fn calculate_next_position(pos : Vector, direction : Direction) -> Vector {
   }
 }
 
+///|
 fn is_in_bounds(pos : Vector, gridSize : Int) -> Bool {
   pos.x >= 0 && pos.x < gridSize && pos.y >= 0 && pos.y < gridSize
 }
 
+///|
 fn find_box_at_position(boxes : Array[Box], pos : Vector) -> Box? {
   let len = boxes.length()
   let mut i = 0
@@ -233,6 +202,7 @@ fn find_box_at_position(boxes : Array[Box], pos : Vector) -> Box? {
   None
 }
 
+///|
 fn has_box(boxes : Array[Box], boxId : Int) -> Bool {
   let len = boxes.length()
   let mut i = 0
@@ -245,6 +215,7 @@ fn has_box(boxes : Array[Box], boxId : Int) -> Bool {
   false
 }
 
+///|
 fn build_box_views(boxes : Array[Box]) -> Array[BoxView] {
   let len = boxes.length()
   let copy = Array::new(capacity=len)
@@ -256,6 +227,7 @@ fn build_box_views(boxes : Array[Box]) -> Array[BoxView] {
   copy
 }
 
+///|
 fn clone_boxes(boxes : Array[Box]) -> Array[Box] {
   let len = boxes.length()
   let copy = Array::new(capacity=len)
@@ -267,7 +239,12 @@ fn clone_boxes(boxes : Array[Box]) -> Array[Box] {
   copy
 }
 
-fn append_snapshot(history : Array[Snapshot], player : Vector, boxes : Array[Box]) -> Array[Snapshot] {
+///|
+fn append_snapshot(
+  history : Array[Snapshot],
+  player : Vector,
+  boxes : Array[Box],
+) -> Array[Snapshot] {
   let len = history.length()
   let next = Array::new(capacity=len + 1)
   let mut i = 0
@@ -279,7 +256,11 @@ fn append_snapshot(history : Array[Snapshot], player : Vector, boxes : Array[Box
   next
 }
 
-fn copy_history_prefix(history : Array[Snapshot], new_len : Int) -> Array[Snapshot] {
+///|
+fn copy_history_prefix(
+  history : Array[Snapshot],
+  new_len : Int,
+) -> Array[Snapshot] {
   if new_len <= 0 {
     Array::new()
   } else {
@@ -295,31 +276,41 @@ fn copy_history_prefix(history : Array[Snapshot], new_len : Int) -> Array[Snapsh
   }
 }
 
+///|
 fn same_position(lhs : Vector, rhs : Vector) -> Bool {
   lhs.x == rhs.x && lhs.y == rhs.y
 }
 
-fn collect_box_chain(boxes : Array[Box], startPos : Vector, direction : Direction) -> (Array[Int], Vector, Bool) {
+///|
+fn collect_box_chain(
+  boxes : Array[Box],
+  startPos : Vector,
+  direction : Direction,
+) -> (Array[Int], Vector, Bool) {
   let chain : Array[Int] = Array::new()
-  let (landing, blocked) =
-    loop startPos {
-      cursor =>
-        match find_box_at_position(boxes, cursor) {
-          Some(b) =>
-            match b.kind {
-              Wall => break (cursor, true)
-              Int(_) => {
-                chain.push(b.id)
-                continue calculate_next_position(cursor, direction)
-              }
+  let (landing, blocked) = loop startPos {
+    cursor =>
+      match find_box_at_position(boxes, cursor) {
+        Some(b) =>
+          match b.kind {
+            Wall => break (cursor, true)
+            Int(_) => {
+              chain.push(b.id)
+              continue calculate_next_position(cursor, direction)
             }
-          None => break (cursor, false)
-        }
-    }
+          }
+        None => break (cursor, false)
+      }
+  }
   (chain, landing, blocked)
 }
 
-fn move_box_chain(boxes : Array[Box], chain : Array[Int], direction : Direction) -> Array[Box] {
+///|
+fn move_box_chain(
+  boxes : Array[Box],
+  chain : Array[Int],
+  direction : Direction,
+) -> Array[Box] {
   let len = boxes.length()
   let moved = Array::new(capacity=len)
   let mut i = 0
@@ -343,37 +334,88 @@ fn move_box_chain(boxes : Array[Box], chain : Array[Int], direction : Direction)
   moved
 }
 
+///|
 fn contains_id(ids : Array[Int], target : Int) -> Bool {
   let len = ids.length()
   let mut i = 0
   while i < len {
     if ids[i] == target {
-      return true
+      break true
+    }
+    i += 1
+  } else {
+    false
+  }
+}
+
+///|
+fn find_box_by_id(boxes : Array[Box], id : Int) -> Box? {
+  let len = boxes.length()
+  let mut i = 0
+  while i < len {
+    let box = boxes[i]
+    if box.id == id {
+      return Some(box)
     }
     i += 1
   }
-  false
+  None
 }
 
-fn to_box_view(box : Box) -> BoxView {
-  match box.kind {
-    Wall =>
-      {
-        id: box.id,
-        pos: box.pos,
-        kind: "wall",
-        value: None,
+///|
+fn merge_chain_if_possible(
+  boxes : Array[Box],
+  chain : Array[Int],
+) -> (Array[Box], Bool) {
+  let chain_len = chain.length()
+  if chain_len < 2 {
+    return (boxes, false)
+  }
+  let first_id = chain[0]
+  let second_id = chain[1]
+  let first_box = match find_box_by_id(boxes, first_id) {
+    Some(box) => box
+    None => return (boxes, false)
+  }
+  let second_box = match find_box_by_id(boxes, second_id) {
+    Some(box) => box
+    None => return (boxes, false)
+  }
+  match (first_box.kind, second_box.kind) {
+    (Int(v1), Int(v2)) => {
+      let len = boxes.length()
+      let merged = Array::new(capacity=len - 1)
+      let mut idx = 0
+      while idx < len {
+        let box = boxes[idx]
+        if box.id == first_box.id {
+          merged.push({
+            id: second_box.id,
+            pos: second_box.pos,
+            kind: Int(v1 + v2),
+          })
+        } else if box.id == second_box.id {
+          // skip second box (already merged)
+        } else {
+          merged.push(box)
+        }
+        idx += 1
       }
-    Int(value) =>
-      {
-        id: box.id,
-        pos: box.pos,
-        kind: "int",
-        value: Some(value),
-      }
+      (merged, true)
+    }
+    _ => (boxes, false)
   }
 }
 
+///|
+fn to_box_view(box : Box) -> BoxView {
+  match box.kind {
+    Wall => { id: box.id, pos: box.pos, kind: "wall", value: None }
+    Int(value) => { id: box.id, pos: box.pos, kind: "int", value: Some(value) }
+  }
+}
+
+///|
 fn clone_vectors(vecs : Array[Vector]) -> Array[Vector] {
   let len = vecs.length()
   let copy = Array::new(capacity=len)
@@ -385,6 +427,7 @@ fn clone_vectors(vecs : Array[Vector]) -> Array[Vector] {
   copy
 }
 
+///|
 fn goals_completed(boxes : Array[Box], goals : Array[Vector]) -> Bool {
   let total = goals.length()
   if total == 0 {
