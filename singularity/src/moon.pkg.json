@@ -4,6 +4,7 @@
             "exports": [
                 "init_model",
                 "init_model_for",
+                "init_model_with_json",
                 "move_with_key",
                 "hover_box",
                 "clear_hover",
@@ -29,7 +30,9 @@
                 "make_negation_box_with_inner",
                 "compose_kind",
                 "kind_to_label",
-                "kind_to_string"
+                "kind_to_string",
+                "build_model",
+                "enpool_level"
             ]
         }
     }

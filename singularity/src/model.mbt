@@ -18,11 +18,20 @@ pub fn init_model() -> Model {
 
 ///|
 pub fn init_model_for(levelId : Int) -> Model {
-  build_model(level_seed(levelId))
+  guard level_seed(levelId) is Some(level) else  { 
+    default_level_id() |> level_seed() |> Option::unwrap() |> build_model()
+   }
+  build_model(level)
 }
 
 ///|
-fn build_model(seed : Level) -> Model {
+pub fn init_model_with_json(json : String) -> Model {
+  let parsed = (try? @json.from_json(@json.parse(json))).unwrap()
+  build_model(parsed)
+}
+
+///|
+pub fn build_model(seed : Level) -> Model {
   let boxes = seed.boxes
   let goals = seed.goals
   {

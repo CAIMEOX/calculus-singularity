@@ -177,44 +177,123 @@ fn build_level_four() -> Level {
 }
 
 ///|
-fn level_pool() -> Array[Level] {
-  let levels : Array[Level] = Array::new(capacity=3)
-  levels.push(build_level_one())
-  levels.push(build_level_two())
-  levels.push(build_level_three())
-  levels.push(build_level_four())
-  levels
-}
+fn build_level5() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 5,
+      "name": "Currying",
+      "gridWidth": 7,
+      "gridHeight": 5,
+      "cellSize": 48,
+    },
+    "player": { "x": 1, "y": 3 },
+    "boxes": [
+      // Boundary Walls
+      { "id": 1, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
+      { "id": 2, "pos": { "x": 6, "y": 0 }, "kind": "Wall" },
+      { "id": 3, "pos": { "x": 0, "y": 4 }, "kind": "Wall" },
+      { "id": 4, "pos": { "x": 6, "y": 4 }, "kind": "Wall" },
 
-///|
-fn find_level(levelId : Int) -> Level {
-  let levels = level_pool()
-  let len = levels.length()
-  let mut i = 0
-  while i < len {
-    let level = levels[i]
-    if level.info.id == levelId {
-      return level
-    }
-    i += 1
+      // Internal Separators/Obstacles to force flow
+      { "id": 5, "pos": { "x": 2, "y": 1 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 4, "y": 3 }, "kind": "Wall" },
+
+      // The complex implication block
+      {
+        "id": 7,
+        "pos": { "x": 5, "y": 2 },
+        "kind": [
+          "Implication",
+          ["Prop", "A"],
+          ["Implication", ["Prop", "B"], ["Prop", "X"]],
+        ],
+      },
+
+      // Prop A (Must be applied first)
+      { "id": 8, "pos": { "x": 1, "y": 1 }, "kind": ["Prop", "A"] },
+
+      // Prop B (Must be applied second)
+      { "id": 9, "pos": { "x": 3, "y": 3 }, "kind": ["Prop", "B"] },
+    ],
+    "goals": [{ "pos": { "x": 6, "y": 1 }, "prop": ["Prop", "X"] }],
   }
-  levels[0]
+  (try? @json.from_json(json)).unwrap()
 }
 
 ///|
-pub fn level_seed(levelId : Int) -> Level {
-  let seed = find_level(levelId)
+fn build_level6() -> Level {
+  let json : Json = {
+  "info": {
+    "id": 6,
+    "name": "Syllogism Squeeze",
+    "gridWidth": 8,
+    "gridHeight": 4,
+    "cellSize": 48
+  },
+  "player": { "x": 0, "y": 1 },
+  "boxes": [
+    // --- The "Squeeze" Corridor ---
+    { "id": 1, "pos": { "x": 0, "y": 0 }, "kind": "Wall" }, { "id": 2, "pos": { "x": 7, "y": 0 }, "kind": "Wall" },
+    { "id": 3, "pos": { "x": 0, "y": 2 }, "kind": "Wall" }, { "id": 4, "pos": { "x": 7, "y": 2 }, "kind": "Wall" },
+    { "id": 5, "pos": { "x": 2, "y": 3 }, "kind": "Wall" }, { "id": 6, "pos": { "x": 5, "y": 3 }, "kind": "Wall" },
+
+    // --- The essential "parking spot" ---
+    { "id": 10, "pos": { "x": 4, "y": 0 }, "kind": "Wall" },
+
+    // --- Propositions and Rules ---
+    // The starting premise, A
+    { "id": 11, "pos": { "x": 1, "y": 1 }, "kind": ["Prop", "A"] },
+    // The first rule, A -> B
+    { "id": 12, "pos": { "x": 3, "y": 1 }, "kind": ["Implication", ["Prop", "A"], ["Prop", "B"]] },
+    // The second rule, B -> C, blocking the path initially
+    { "id": 13, "pos": { "x": 6, "y": 1 }, "kind": ["Implication", ["Prop", "B"], ["Prop", "C"]] }
+  ],
+  "goals": [
+    { "pos": { "x": 7, "y": 1 }, "prop": ["Prop", "C"] }
+  ]
+}
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
+pub let pool : Map[Int, Level] = level_pool()
+
+///|
+fn level_pool() -> Map[Int, Level] {
   {
+    1: build_level_one(),
+    2: build_level_two(),
+    3: build_level_three(),
+    4: build_level_four(),
+    5: build_level5(),
+    6: build_level6(),
+  }
+}
+
+///|
+pub fn enpool_level(level : Level) -> Unit {
+  pool[level.info.id] = level
+}
+
+///|
+fn find_level(levelId : Int) -> Level? {
+  pool.get(levelId)
+}
+
+///|
+pub fn level_seed(levelId : Int) -> Level? {
+  guard find_level(levelId) is Some(seed) else { None }
+  Some({
     info: seed.info,
     player: seed.player,
     boxes: seed.boxes.copy(),
     goals: seed.goals.copy(),
-  }
+  })
 }
 
 ///|
 pub fn level_infos() -> Array[LevelInfo] {
-  level_pool().map(level => level.info)
+  pool.iter().map(ilvl => ilvl.1.info).collect()
 }
 
 ///|

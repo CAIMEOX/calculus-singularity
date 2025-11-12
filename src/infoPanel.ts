@@ -26,14 +26,6 @@ export function createInfoPanel(): InfoPanelElements {
   loadJsonButton.textContent = "Load From JSON";
   actions.appendChild(loadJsonButton);
 
-  const nextLevelButton = document.createElement("button");
-  nextLevelButton.type = "button";
-  nextLevelButton.className = "info-panel__button info-panel__button--accent";
-  nextLevelButton.textContent = "Next Level";
-  nextLevelButton.hidden = true;
-  nextLevelButton.disabled = true;
-  actions.appendChild(nextLevelButton);
-
   const openLevelEditorButton = document.createElement("button");
   openLevelEditorButton.type = "button";
   openLevelEditorButton.className = "info-panel__button";
@@ -42,6 +34,14 @@ export function createInfoPanel(): InfoPanelElements {
     window.open("editor.html", "_blank");
   };
   actions.appendChild(openLevelEditorButton);
+
+  const nextLevelButton = document.createElement("button");
+  nextLevelButton.type = "button";
+  nextLevelButton.className = "info-panel__button info-panel__button--accent";
+  nextLevelButton.textContent = "Next Level";
+  nextLevelButton.hidden = true;
+  nextLevelButton.disabled = true;
+  actions.appendChild(nextLevelButton);
 
   panel.appendChild(actions);
 

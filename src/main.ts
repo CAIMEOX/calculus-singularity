@@ -24,6 +24,8 @@ import {
   kind_to_label,
   load_from_json,
   kind_to_string,
+  build_model,
+  enpool_level
 } from "../singularity/target/js/release/build/cs.js";
 
 type CoreModel = "core-model-placeholder";
@@ -318,7 +320,7 @@ function main() {
     pendingNextLevelId = nextInfo.id;
     infoPanel.nextLevelButton.hidden = false;
     infoPanel.nextLevelButton.disabled = false;
-    infoPanel.nextLevelButton.textContent = `进入下一关：${nextInfo.name}`;
+    infoPanel.nextLevelButton.textContent = `Next Level：${nextInfo.name}`;
   };
 
   const render = () => {
@@ -381,10 +383,10 @@ function main() {
   const loadLevelFromJson = (json: string) => {
     const parsed = load_from_json(json);
     if (!parsed || parsed.$tag !== 1) {
-      throw new Error("无效的 JSON");
+      throw new Error("Invalid JSON");
     }
-    const level = parsed._0 as Level;
-    coreModel = buildModelFromLevel(level) as CoreModel;
+    enpool_level(parsed._0);
+    coreModel = build_model(parsed._0);
     thumbnailStore.clear();
     refreshBackups();
     needsStageRebuild = true;
@@ -439,7 +441,7 @@ function main() {
       loadLevelFromJson(input.trim());
     } catch (error) {
       console.error(error);
-      window.alert("加载 JSON 失败，请确认格式正确。");
+      window.alert("Failed to Load Level from JSON: " + error);
     }
   });
 
