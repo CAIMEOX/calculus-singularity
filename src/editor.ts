@@ -661,6 +661,51 @@ function renderToolbar() {
   toolbarContainer.appendChild(panel);
 }
 
+function renderStructurePanel() {
+  const panel = document.createElement("div");
+  panel.className = "editor-panel";
+  const title = document.createElement("h2");
+  title.textContent = "结构工具";
+  panel.appendChild(title);
+
+  const groups: {
+    label: string;
+    handler: () => void;
+    tone?: "secondary";
+  }[][] = [
+    [
+      { label: "左侧插入列", handler: () => insertColumnRelative("left") },
+      { label: "右侧插入列", handler: () => insertColumnRelative("right") },
+    ],
+    [
+      { label: "上方插入行", handler: () => insertRowRelative("up") },
+      { label: "下方插入行", handler: () => insertRowRelative("down") },
+    ],
+    [
+      { label: "删除选中行", handler: deleteSelectedRow, tone: "secondary" },
+      { label: "删除选中列", handler: deleteSelectedColumn, tone: "secondary" },
+    ],
+  ];
+
+  groups.forEach((group) => {
+    const row = document.createElement("div");
+    row.className = "button-row";
+    group.forEach((config) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = config.label;
+      if (config.tone === "secondary") {
+        btn.classList.add("secondary");
+      }
+      btn.addEventListener("click", config.handler);
+      row.appendChild(btn);
+    });
+    panel.appendChild(row);
+  });
+
+  return panel;
+}
+
 function renderMetadataPanel() {
   const panel = document.createElement("div");
   panel.className = "editor-panel";
@@ -846,6 +891,29 @@ function updateSelectionStyles() {
   });
 }
 
+function requireSelectedCell(): Vector2 | null {
+  if (!selectedCell) {
+    setStatus("请先选中一个格子", true);
+    return null;
+  }
+  return selectedCell;
+}
+
+function clampSelectedCellToBounds() {
+  if (!selectedCell) {
+    return;
+  }
+  const maxX = level.info.gridWidth - 1;
+  const maxY = level.info.gridHeight - 1;
+  if (maxX < 0 || maxY < 0) {
+    selectedCell = null;
+    return;
+  }
+  const clampedX = Math.min(Math.max(selectedCell.x, 0), maxX);
+  const clampedY = Math.min(Math.max(selectedCell.y, 0), maxY);
+  selectedCell = { x: clampedX, y: clampedY };
+}
+
 function deleteSelectedCell() {
   if (!selectedCell) {
     setStatus("请选择要删除的节点", true);
@@ -896,6 +964,177 @@ async function editSelectedCell() {
     return;
   }
   setStatus("该格没有可编辑的节点", true);
+}
+
+function shiftEntitiesOnAxis(
+  axis: "x" | "y",
+  index: number,
+  delta: number,
+  mode: "insert" | "delete"
+) {
+  const adjustValue = (value: number) => {
+    if (mode === "insert") {
+      return value >= index ? value + delta : value;
+    }
+    if (value > index) {
+      return value - delta;
+    }
+    return value;
+  };
+  const filterPredicate =
+    mode === "delete" ? (value: number) => value !== index : () => true;
+
+  level.boxes = level.boxes
+    .filter((box) => filterPredicate(box.pos[axis]))
+    .map((box) =>
+      adjustValue(box.pos[axis]) === box.pos[axis]
+        ? box
+        : {
+            ...box,
+            pos: { ...box.pos, [axis]: adjustValue(box.pos[axis]) },
+          }
+    );
+  level.goals = level.goals
+    .filter((goal) => filterPredicate(goal.pos[axis]))
+    .map((goal) =>
+      adjustValue(goal.pos[axis]) === goal.pos[axis]
+        ? goal
+        : {
+            ...goal,
+            pos: { ...goal.pos, [axis]: adjustValue(goal.pos[axis]) },
+          }
+    );
+
+  const playerCoord = level.player[axis];
+  if (mode === "insert") {
+    if (playerCoord >= index) {
+      level.player = { ...level.player, [axis]: playerCoord + delta };
+    }
+  } else {
+    if (playerCoord === index) {
+      level.player = { ...level.player, [axis]: Math.max(0, playerCoord - 1) };
+    } else if (playerCoord > index) {
+      level.player = { ...level.player, [axis]: playerCoord - delta };
+    }
+  }
+}
+
+function insertColumnAt(index: number): boolean {
+  if (index < 0 || index > level.info.gridWidth) {
+    setStatus("无法在该位置插入列", true);
+    return false;
+  }
+  pushHistory();
+  shiftEntitiesOnAxis("x", index, 1, "insert");
+  level.info.gridWidth += 1;
+  if (selectedCell && selectedCell.x >= index) {
+    selectedCell = { x: selectedCell.x + 1, y: selectedCell.y };
+  }
+  clampSelectedCellToBounds();
+  renderAll();
+  return true;
+}
+
+function insertRowAt(index: number): boolean {
+  if (index < 0 || index > level.info.gridHeight) {
+    setStatus("无法在该位置插入行", true);
+    return false;
+  }
+  pushHistory();
+  shiftEntitiesOnAxis("y", index, 1, "insert");
+  level.info.gridHeight += 1;
+  if (selectedCell && selectedCell.y >= index) {
+    selectedCell = { x: selectedCell.x, y: selectedCell.y + 1 };
+  }
+  clampSelectedCellToBounds();
+  renderAll();
+  return true;
+}
+
+function deleteColumnAt(index: number): boolean {
+  if (level.info.gridWidth <= 1) {
+    setStatus("无法再删除列", true);
+    return false;
+  }
+  pushHistory();
+  shiftEntitiesOnAxis("x", index, 1, "delete");
+  level.info.gridWidth -= 1;
+  if (selectedCell) {
+    if (selectedCell.x > index) {
+      selectedCell = { x: selectedCell.x - 1, y: selectedCell.y };
+    } else if (selectedCell.x === index) {
+      selectedCell = {
+        x: Math.min(selectedCell.x, level.info.gridWidth - 1),
+        y: selectedCell.y,
+      };
+    }
+  }
+  clampSelectedCellToBounds();
+  renderAll();
+  return true;
+}
+
+function deleteRowAt(index: number): boolean {
+  if (level.info.gridHeight <= 1) {
+    setStatus("无法再删除行", true);
+    return false;
+  }
+  pushHistory();
+  shiftEntitiesOnAxis("y", index, 1, "delete");
+  level.info.gridHeight -= 1;
+  if (selectedCell) {
+    if (selectedCell.y > index) {
+      selectedCell = { x: selectedCell.x, y: selectedCell.y - 1 };
+    } else if (selectedCell.y === index) {
+      selectedCell = {
+        x: selectedCell.x,
+        y: Math.min(selectedCell.y, level.info.gridHeight - 1),
+      };
+    }
+  }
+  clampSelectedCellToBounds();
+  renderAll();
+  return true;
+}
+
+function insertColumnRelative(position: "left" | "right") {
+  const cell = requireSelectedCell();
+  if (!cell) return;
+  const insertIndex = position === "left" ? cell.x : cell.x + 1;
+  if (!insertColumnAt(insertIndex)) {
+    return;
+  }
+  setStatus(
+    position === "left" ? "已在选中格子左侧新增一列" : "已在选中格子右侧新增一列"
+  );
+}
+
+function insertRowRelative(position: "up" | "down") {
+  const cell = requireSelectedCell();
+  if (!cell) return;
+  const insertIndex = position === "up" ? cell.y : cell.y + 1;
+  if (!insertRowAt(insertIndex)) {
+    return;
+  }
+  setStatus(
+    position === "up" ? "已在选中格子上方新增一行" : "已在选中格子下方新增一行"
+  );
+}
+
+function deleteSelectedColumn() {
+  const cell = requireSelectedCell();
+  if (!cell) return;
+  if (deleteColumnAt(cell.x)) {
+    setStatus("已删除选中列");
+  }
+}
+
+function deleteSelectedRow() {
+  const cell = requireSelectedCell();
+  if (!cell) return;
+  if (deleteRowAt(cell.y)) {
+    setStatus("已删除选中行");
+  }
 }
 
 function isCellEmpty(x: number, y: number) {
@@ -1100,8 +1339,10 @@ function init() {
   const left = document.createElement("div");
   left.className = "editor-left";
   const metadataPanel = renderMetadataPanel();
+  const structurePanel = renderStructurePanel();
   const ioPanel = renderIoPanel();
   left.appendChild(metadataPanel);
+  left.appendChild(structurePanel);
   left.appendChild(gridContainer);
   left.appendChild(ioPanel);
   left.appendChild(statusLine);

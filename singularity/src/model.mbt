@@ -18,9 +18,9 @@ pub fn init_model() -> Model {
 
 ///|
 pub fn init_model_for(levelId : Int) -> Model {
-  guard level_seed(levelId) is Some(level) else  { 
+  guard level_seed(levelId) is Some(level) else {
     default_level_id() |> level_seed() |> Option::unwrap() |> build_model()
-   }
+  }
   build_model(level)
 }
 
@@ -378,8 +378,8 @@ fn fusion_result(first : Kind, second : Kind) -> Kind? {
     (Prop(_) as p1, Prop(_) as p2) => Some(And(p1, p2))
     (Implication(a, b), Implication(c, d)) if b == c => Some(Implication(a, d))
     (Implication(pre, conclusion), input) if input == pre => Some(conclusion)
-    (Implication(_), _) => None
     (input, Implication(pre, conclusion)) if input == pre => Some(conclusion)
+    (Implication(_), _) => None
     (_, Implication(_)) => None
     (Fst(None), And(left, _)) => Some(left)
     (And(left, _), Fst(None)) => Some(left)
