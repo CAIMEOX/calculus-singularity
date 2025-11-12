@@ -46,6 +46,7 @@ export interface LevelInfo {
   gridWidth: number;
   gridHeight: number;
   cellSize: number;
+  description: string;
 }
 
 export interface LevelBox {

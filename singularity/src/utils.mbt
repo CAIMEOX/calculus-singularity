@@ -60,33 +60,42 @@ pub fn kind_to_label(kind : Kind) -> String {
 }
 
 ///|
+fn paren(s : String, cond : Bool) -> String {
+  if cond {
+    "(\{s})"
+  } else {
+    s
+  }
+}
+
+///|
 pub fn kind_to_string(kind : Kind) -> String {
-  match kind {
+  letrec go = k => match k {
     Wall => "Wall"
-    Prop(label) => "\{label}"
+    Prop(label) => "\{(label)}"
     Implication(premise, conclusion) => {
-      let norm_p = if premise is Implication(_, _) {
-        "(\{premise})"
-      } else {
-        "\{premise}"
-      }
-      let norm_c = if conclusion is Implication(_, _) {
-        "(\{conclusion})"
-      } else {
-        "\{conclusion}"
-      }
+      let premise_s = go(premise)
+      let conclusion_s = go(conclusion)
+      let norm_p = paren(premise_s, premise is Implication(_, _))
+      let norm_c = paren(conclusion_s, conclusion is Implication(_, _))
       "\{norm_p} -> \{norm_c}"
     }
-    And(left, right) => "(\{left} & \{right})"
-    Fst(Some(expr)) => "fst (\{expr})"
+    And(left, right) => {
+      let left_s = go(left)
+      let right_s = go(right)
+      "(\{left_s} & \{right_s})"
+    }
+    Fst(Some(expr)) => "fst (\{go(expr)})"
     Fst(None) => "fst"
-    Snd(Some(expr)) => "snd (\{expr})"
+    Snd(Some(expr)) => "snd (\{go(expr)})"
     Snd(None) => "snd"
-    Neg(Some(Neg(Some(x)))) => x.to_string()
+    Neg(Some(Neg(Some(x)))) => go(x)
     Neg(Some(Prop(label))) => "!\{label}"
     Neg(None) => "!"
-    Neg(Some(inner)) => "!(\{inner})"
+    Neg(Some(inner)) => "!(\{go(inner)})"
   }
+
+  go(kind)
 }
 
 ///|

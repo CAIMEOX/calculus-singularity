@@ -176,6 +176,7 @@ function createEmptyLevel(): Level {
     info: {
       id: 1000,
       name: "新关卡",
+      description: "在此输入关卡描述 / 提示",
       gridWidth: 6,
       gridHeight: 6,
       cellSize: 48,
@@ -758,6 +759,7 @@ function renderMetadataPanel() {
     level.info = {
       id: Number(metadataInputs.id?.value) || level.info.id,
       name: metadataInputs.name?.value || level.info.name,
+      description: level.info.description || "",
       gridWidth: Math.max(
         1,
         Number(metadataInputs.gridWidth?.value) || level.info.gridWidth
@@ -1105,7 +1107,9 @@ function insertColumnRelative(position: "left" | "right") {
     return;
   }
   setStatus(
-    position === "left" ? "已在选中格子左侧新增一列" : "已在选中格子右侧新增一列"
+    position === "left"
+      ? "已在选中格子左侧新增一列"
+      : "已在选中格子右侧新增一列"
   );
 }
 

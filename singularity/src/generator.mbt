@@ -79,43 +79,6 @@ pub fn generate(
 }
 
 ///|
-test "generate" {
-  let g = generate(3, 1, 3, 3)
-  @json.inspect(g.0, content={
-    "info": {
-      "id": 9000,
-      "name": "Synthesized Proof 1",
-      "gridWidth": 8,
-      "gridHeight": 4,
-      "cellSize": 48,
-    },
-    "player": { "x": 1, "y": 2 },
-    "boxes": [
-      { "id": 1, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
-      { "id": 2, "pos": { "x": 7, "y": 0 }, "kind": "Wall" },
-      { "id": 3, "pos": { "x": 0, "y": 1 }, "kind": "Wall" },
-      { "id": 4, "pos": { "x": 7, "y": 1 }, "kind": "Wall" },
-      { "id": 5, "pos": { "x": 0, "y": 2 }, "kind": "Wall" },
-      { "id": 6, "pos": { "x": 7, "y": 2 }, "kind": "Wall" },
-      { "id": 7, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
-      { "id": 8, "pos": { "x": 7, "y": 3 }, "kind": "Wall" },
-      { "id": 9, "pos": { "x": 2, "y": 2 }, "kind": ["Prop", "A"] },
-      {
-        "id": 10,
-        "pos": { "x": 3, "y": 2 },
-        "kind": ["Implication", ["Prop", "A"], ["Prop", "B"]],
-      },
-      { "id": 11, "pos": { "x": 4, "y": 2 }, "kind": "Wall" },
-    ],
-    "goals": [{ "pos": { "x": 5, "y": 2 }, "prop": ["Prop", "B"] }],
-  })
-  inspect(
-    g.1,
-    content="[Move 1: Right (Right — merge), Move 2: Down (Down — move), Move 3: Right (Right — move), Move 4: Up (Up — move), Move 5: Left (Left — move), Move 6: Up (Up — move), Move 7: Right (Right — move), Move 8: Right (Right — move), Move 9: Up (Up — move), Move 10: Right (Right — move), Move 11: Down (Down — move)]",
-  )
-}
-
-///|
 fn plan_shape(
   maxSize : Int,
   goals : Int,

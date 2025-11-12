@@ -47,7 +47,7 @@ const AND_BORDER : Int = 0xb094ff
 const PI_FILL : Int = 0x0c3c7a
 
 ///|
-fn build_level_one() -> Level {
+fn build_level1() -> Level {
   let json : Json = {
     "info": {
       "id": 1,
@@ -77,7 +77,7 @@ fn build_level_one() -> Level {
 }
 
 ///|
-fn build_level_two() -> Level {
+fn build_level2() -> Level {
   let json : Json = {
     "info": {
       "id": 2,
@@ -113,7 +113,7 @@ fn build_level_two() -> Level {
 }
 
 ///|
-fn build_level_three() -> Level {
+fn build_level3() -> Level {
   let json : Json = {
     "info": {
       "id": 3,
@@ -140,7 +140,7 @@ fn build_level_three() -> Level {
 }
 
 ///|
-fn build_level_four() -> Level {
+fn build_level4() -> Level {
   let json : Json = {
     "info": {
       "id": 4,
@@ -356,21 +356,69 @@ fn build_level7() -> Level {
 }
 
 ///|
+fn build_level8() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 8,
+      "name": "Associativity",
+      "description": "Proposition as resource.",
+      "gridWidth": 6,
+      "gridHeight": 5,
+      "cellSize": 48,
+    },
+    "player": { "x": 2, "y": 1 },
+    "boxes": [
+      {
+        "id": 2,
+        "pos": { "x": 2, "y": 2 },
+        "kind": ["And", ["And", ["Prop", "A"], ["Prop", "B"]], ["Prop", "C"]],
+      },
+      { "id": 3, "pos": { "x": 1, "y": 3 }, "kind": ["Fst", null] },
+      { "id": 4, "pos": { "x": 3, "y": 3 }, "kind": ["Snd", null] },
+      { "id": 7, "pos": { "x": 3, "y": 0 }, "kind": ["Prop", "C"] },
+      {
+        "id": 8,
+        "pos": { "x": 1, "y": 0 },
+        "kind": ["And", ["And", ["Prop", "A"], ["Prop", "C"]], ["Prop", "B"]],
+      },
+      { "id": 9, "pos": { "x": 1, "y": 1 }, "kind": ["Fst", null] },
+      { "id": 14, "pos": { "x": 5, "y": 3 }, "kind": "Wall" },
+      { "id": 15, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
+      { "id": 16, "pos": { "x": 5, "y": 0 }, "kind": "Wall" },
+      { "id": 17, "pos": { "x": 5, "y": 1 }, "kind": "Wall" },
+      { "id": 18, "pos": { "x": 5, "y": 2 }, "kind": "Wall" },
+      { "id": 19, "pos": { "x": 5, "y": 4 }, "kind": "Wall" },
+      { "id": 20, "pos": { "x": 0, "y": 4 }, "kind": "Wall" },
+      { "id": 22, "pos": { "x": 4, "y": 1 }, "kind": "Wall" },
+    ],
+    "goals": [
+      {
+        "pos": { "x": 4, "y": 0 },
+        "prop": ["And", ["Prop", "A"], ["And", ["Prop", "B"], ["Prop", "C"]]],
+      },
+    ],
+  }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
 pub let pool : Map[Int, Level] = level_pool()
 
 ///|
 fn level_pool() -> Map[Int, Level] {
   {
-    1: build_level_one(),
-    2: build_level_two(),
-    3: build_level_three(),
-    4: build_level_four(),
+    1: build_level1(),
+    2: build_level2(),
+    3: build_level3(),
+    4: build_level4(),
     5: build_level5(),
     6: build_level6(),
     7: build_level7(),
+    8: build_level8(),
   }
 }
 
+///|
 fn get_description(levelId : Int) -> String {
   guard find_level(levelId) is Some(level) else { return "" }
   level.info.description
