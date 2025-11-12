@@ -46,33 +46,33 @@ const AND_BORDER : Int = 0xb094ff
 ///|
 const PI_FILL : Int = 0x0c3c7a
 
-
-
 ///|
 fn build_level_one() -> Level {
-  let boxes : Array[Box] = Array::new(capacity=8)
-  boxes.push(make_prop_box(1, 2, 2, "A"))
-  boxes.push(make_implication_box(2, 3, 2, "A", "B"))
-  boxes.push(make_prop_box(3, 1, 4, "C"))
-  boxes.push(make_implication_box(4, 2, 4, "C", "A"))
-  boxes.push(make_wall(5, 6, 1))
-  boxes.push(make_wall(6, 6, 2))
-  boxes.push(make_wall(7, 6, 3))
-  boxes.push(make_prop_box(8, 4, 5, "A"))
-  let goals : Array[Goal] = Array::new(capacity=1)
-  goals.push(make_goal(9, 2, "B"))
-  {
-    info: {
-      id: 1,
-      name: "命题觉醒",
-      gridWidth: 12,
-      gridHeight: 8,
-      cellSize: 48,
+  let json : Json = {
+    "info": {
+      "id": 1,
+      "name": "Axiom",
+      "gridWidth": 5,
+      "gridHeight": 3,
+      "cellSize": 48,
     },
-    player: { x: 1, y: 1 },
-    boxes,
-    goals,
+    "player": { "x": 0, "y": 1 },
+    "boxes": [
+      { "id": 1, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
+      { "id": 2, "pos": { "x": 1, "y": 0 }, "kind": "Wall" },
+      { "id": 3, "pos": { "x": 2, "y": 0 }, "kind": "Wall" },
+      { "id": 4, "pos": { "x": 3, "y": 0 }, "kind": "Wall" },
+      { "id": 5, "pos": { "x": 4, "y": 0 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 4, "y": 2 }, "kind": "Wall" },
+      { "id": 7, "pos": { "x": 3, "y": 2 }, "kind": "Wall" },
+      { "id": 8, "pos": { "x": 2, "y": 2 }, "kind": "Wall" },
+      { "id": 9, "pos": { "x": 0, "y": 2 }, "kind": "Wall" },
+      { "id": 10, "pos": { "x": 1, "y": 2 }, "kind": "Wall" },
+      { "id": 11, "pos": { "x": 1, "y": 1 }, "kind": ["Prop", "A"] },
+    ],
+    "goals": [{ "pos": { "x": 4, "y": 1 }, "prop": ["Prop", "A"] }],
   }
+  (try? @json.from_json(json)).unwrap()
 }
 
 ///|

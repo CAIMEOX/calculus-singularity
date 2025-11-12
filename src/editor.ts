@@ -306,10 +306,10 @@ async function handleDrop(tool: ToolId, x: number, y: number) {
     const parsed = await promptForKindInput({
       title: "Goal 目标",
       description: "输入逻辑表达式，例如 A & B、A -> !B、fst (A & B)",
-      defaultValue: existingGoal ? kind_to_label(existingGoal.prop) : "A",
+      defaultValue: existingGoal ? kind_to_string(existingGoal.prop) : "A",
       confirmLabel: "保存 Goal",
     });
-    if (!parsed) {
+    if (!parsed || parsed.$tag === 0) {
       return;
     }
     pushHistory();
@@ -318,7 +318,7 @@ async function handleDrop(tool: ToolId, x: number, y: number) {
     );
     level.goals.push({
       pos: { x, y },
-      prop: parsed,
+      prop: parsed._0,
     });
     setSelectedCell(x, y);
     renderAll();
@@ -498,7 +498,7 @@ async function editGoalAt(x: number, y: number): Promise<boolean> {
     return false;
   }
   pushHistory();
-  goal.prop = parsed;
+  goal.prop = parsed._0;
   return true;
 }
 
@@ -774,7 +774,7 @@ function renderIoPanel() {
         return;
       }
       const parsed = load_from_json(jsonInput.value);
-      if (!parsed || parsed.$tag !== 0) {
+      if (!parsed || parsed.$tag === 0) {
         throw new Error("无效的 Level JSON");
       }
       setLevel(parsed._0 as Level);
