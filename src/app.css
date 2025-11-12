@@ -53,6 +53,47 @@ canvas {
   overflow-y: auto;
   position: sticky;
   top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-panel__content {
+  overflow-wrap: anywhere;
+}
+
+.info-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-panel__button {
+  width: 100%;
+  border: 1px solid #2f2f36;
+  background: #27272f;
+  color: #f2f2f7;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.info-panel__button:hover {
+  background: #31313a;
+  border-color: #3f8cff;
+}
+
+.info-panel__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info-panel__button--accent {
+  background: #3f8cff;
+  border-color: #3f8cff;
+  color: #050506;
 }
 
 .backup-panel {
@@ -114,4 +155,74 @@ canvas {
 .backup-card__footer {
   font-size: 11px;
   opacity: 0.75;
+}
+
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.app-modal {
+  width: min(640px, 100%);
+  background: #141418;
+  border: 1px solid #2a2a33;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-modal h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #7ae7ff;
+}
+
+.app-modal p {
+  margin: 0;
+  font-size: 13px;
+  color: #bbb;
+}
+
+.app-modal textarea {
+  min-height: 220px;
+  background: #0b0b0f;
+  border: 1px solid #30303a;
+  border-radius: 6px;
+  color: #f5f5ff;
+  padding: 12px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.app-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.app-modal__button {
+  border: 1px solid #3a3a40;
+  background: #23232a;
+  color: #f4f4f9;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.app-modal__button--primary {
+  background: #3f8cff;
+  border-color: #3f8cff;
+  color: #050506;
 }

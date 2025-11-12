@@ -1,7 +1,11 @@
 import * as PIXI from "pixi.js";
 import { createBox } from "./box";
-import { createInfoPanel, updateInfoPanel } from "./infoPanel";
-import { Vector2, ViewModel, LevelInfo } from "./types";
+import {
+  createInfoPanel,
+  updateInfoPanel,
+  InfoPanelElements,
+} from "./infoPanel";
+import { Vector2, ViewModel, LevelInfo, Level } from "./types";
 import { createBackupPanel, renderBackupPanel } from "./backupPanel";
 import {
   init_model,
@@ -18,6 +22,8 @@ import {
   level_infos,
   view as moonView,
   kind_to_label,
+  load_from_json,
+  kind_to_string,
 } from "../singularity/target/js/release/build/cs.js";
 
 type CoreModel = "core-model-placeholder";
@@ -211,7 +217,9 @@ function applyCanvasSize(
   canvas.style.height = `${height}px`;
 }
 
-function mount(app: PIXI.Application) {
+function mount(
+  app: PIXI.Application
+): { infoPanel: InfoPanelElements; backupList: HTMLElement } {
   const container = document.getElementById("game-container")!;
   container.classList.add("game-container");
 
@@ -223,9 +231,10 @@ function mount(app: PIXI.Application) {
   stageWrapper.appendChild(app.view as HTMLCanvasElement);
   container.appendChild(stageWrapper);
 
-  const panel = createInfoPanel();
-  container.appendChild(panel);
-  return { infoPanel: panel, backupList };
+  const infoPanel = createInfoPanel();
+  container.appendChild(infoPanel.panel);
+
+  return { infoPanel, backupList };
 }
 
 function main() {
@@ -256,6 +265,7 @@ function main() {
   );
   const { infoPanel, backupList } = mount(app);
   let ctx = createRenderer(app, viewModel);
+  let pendingNextLevelId: number | null = null;
 
   const handlers: HoverHandlers = {
     hover: (boxId) => {
@@ -292,11 +302,31 @@ function main() {
     needsStageRebuild = false;
   };
 
+  const updateNextLevelControl = (view: ViewModel) => {
+    const levelIndex = levelCatalog.findIndex((level) => level.id === view.levelId);
+    const hasNext =
+      view.isComplete &&
+      levelIndex >= 0 &&
+      levelIndex < levelCatalog.length - 1;
+    if (!hasNext) {
+      pendingNextLevelId = null;
+      infoPanel.nextLevelButton.hidden = true;
+      infoPanel.nextLevelButton.disabled = true;
+      return;
+    }
+    const nextInfo = levelCatalog[levelIndex + 1];
+    pendingNextLevelId = nextInfo.id;
+    infoPanel.nextLevelButton.hidden = false;
+    infoPanel.nextLevelButton.disabled = false;
+    infoPanel.nextLevelButton.textContent = `进入下一关：${nextInfo.name}`;
+  };
+
   const render = () => {
     viewModel = moonView(coreModel);
     resizeIfNeeded(viewModel);
     renderScene(ctx, viewModel, handlers);
     updateInfoPanel(infoPanel, viewModel);
+    updateNextLevelControl(viewModel);
   };
 
   const getBackupMetas = () => (list_backups(coreModel) ?? []) as BackupMeta[];
@@ -348,6 +378,19 @@ function main() {
     render();
   };
 
+  const loadLevelFromJson = (json: string) => {
+    const parsed = load_from_json(json);
+    if (!parsed || parsed.$tag !== 1) {
+      throw new Error("无效的 JSON");
+    }
+    const level = parsed._0 as Level;
+    coreModel = buildModelFromLevel(level) as CoreModel;
+    thumbnailStore.clear();
+    refreshBackups();
+    needsStageRebuild = true;
+    render();
+  };
+
   const handleLevelHotkey = (key: string) => {
     const levelId = levelHotkeys.get(key);
     if (levelId === undefined) {
@@ -387,10 +430,146 @@ function main() {
     }
   });
 
+  infoPanel.loadJsonButton.addEventListener("click", async () => {
+    const input = await openJsonModal();
+    if (!input || !input.trim()) {
+      return;
+    }
+    try {
+      loadLevelFromJson(input.trim());
+    } catch (error) {
+      console.error(error);
+      window.alert("加载 JSON 失败，请确认格式正确。");
+    }
+  });
+
+  infoPanel.nextLevelButton.addEventListener("click", () => {
+    if (pendingNextLevelId !== null) {
+      loadLevel(pendingNextLevelId);
+    }
+  });
+
   render();
 }
 
 main();
+
+function openJsonModal(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "app-modal-overlay";
+
+    const modal = document.createElement("div");
+    modal.className = "app-modal";
+
+    const title = document.createElement("h3");
+    title.textContent = "Load Level from JSON";
+    modal.appendChild(title);
+
+    const description = document.createElement("p");
+    description.textContent = "Paste the level JSON data below to load a custom level";
+    modal.appendChild(description);
+
+    const form = document.createElement("form");
+    const textarea = document.createElement("textarea");
+    textarea.placeholder = '{ "info": { ... }, "boxes": [] }';
+    form.appendChild(textarea);
+
+    const actions = document.createElement("div");
+    actions.className = "app-modal__actions";
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.className = "app-modal__button";
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "submit";
+    confirmBtn.textContent = "Load";
+    confirmBtn.className = "app-modal__button app-modal__button--primary";
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    form.appendChild(actions);
+    modal.appendChild(form);
+    overlay.appendChild(modal);
+
+    const cleanup = () => {
+      document.removeEventListener("keydown", onKeyDown);
+      overlay.remove();
+    };
+
+    const close = (value: string | null) => {
+      cleanup();
+      resolve(value);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close(null);
+      }
+    };
+
+    cancelBtn.addEventListener("click", () => close(null));
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        close(null);
+      }
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      close(textarea.value);
+    });
+
+    document.addEventListener("keydown", onKeyDown);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => textarea.focus());
+  });
+}
+
+function buildModelFromLevel(level: Level) {
+  const boxes = level.boxes.map((box) => ({
+    id: box.id,
+    pos: { x: box.pos.x, y: box.pos.y },
+    kind: box.kind,
+  }));
+  const goals = level.goals.map((goal) => ({
+    pos: { x: goal.pos.x, y: goal.pos.y },
+    prop: goal.prop,
+  }));
+  return {
+    player: { x: level.player.x, y: level.player.y },
+    boxes,
+    hoveredBoxId: undefined,
+    gridWidth: level.info.gridWidth,
+    gridHeight: level.info.gridHeight,
+    cellSize: level.info.cellSize,
+    goals,
+    history: [],
+    isComplete: areGoalsSatisfied(boxes, goals),
+    backups: [],
+    activeBackupId: undefined,
+    nextBackupId: 0,
+    levelId: level.info.id,
+    levelName: level.info.name,
+  };
+}
+
+function areGoalsSatisfied(
+  boxes: Level["boxes"],
+  goals: Level["goals"]
+): boolean {
+  if (goals.length === 0) {
+    return true;
+  }
+  return goals.every((goal) => {
+    const match = boxes.find(
+      (box) => box.pos.x === goal.pos.x && box.pos.y === goal.pos.y
+    );
+    if (!match) {
+      return false;
+    }
+    return kind_to_string(match.kind) === kind_to_string(goal.prop);
+  });
+}
 
 function captureThumbnail(app: PIXI.Application): string {
   const source = app.renderer.extract.canvas(app.stage);
