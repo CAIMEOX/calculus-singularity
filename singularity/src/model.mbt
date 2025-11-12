@@ -379,13 +379,13 @@ fn fusion_result(first : Kind, second : Kind) -> Kind? {
     (Implication(a, b), Implication(c, d)) if b == c => Some(Implication(a, d))
     (Implication(pre, conclusion), input) if input == pre => Some(conclusion)
     (input, Implication(pre, conclusion)) if input == pre => Some(conclusion)
-    (Implication(_), _) => None
-    (_, Implication(_)) => None
+    // (Implication(_), _) => None
+    // (_, Implication(_)) => None
     (Fst(None), And(left, _)) => Some(left)
     (And(left, _), Fst(None)) => Some(left)
     (Snd(None), And(_, right)) => Some(right)
     (And(_, right), Snd(None)) => Some(right)
-    (Prop(a), And(_) as b) => Some(And(b, Prop(a)))
+    (Prop(a), And(_) as b) => Some(And(Prop(a), b))
     (And(_) as a, Prop(b)) => Some(And(a, Prop(b)))
     (Neg(Some(x)), Neg(None)) | (Neg(None), Neg(Some(x))) => Some(x)
     (Neg(None), y) | (y, Neg(None)) => Some(Neg(Some(y)))

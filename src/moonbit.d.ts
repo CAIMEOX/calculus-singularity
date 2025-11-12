@@ -47,4 +47,10 @@ declare module "../singularity/target/js/release/build/cs.js" {
     inner: string
   ): any;
   export function compose_kind(raw: string): any;
+  export function generate(
+    maxSize: number,
+    goals: number,
+    maxProps: number,
+    depth: number
+  ): any;
 }

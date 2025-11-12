@@ -52,6 +52,7 @@ fn build_level_one() -> Level {
     "info": {
       "id": 1,
       "name": "Axiom",
+      "description": "Move the box labeled 'A' to the goal 'A'.",
       "gridWidth": 5,
       "gridHeight": 3,
       "cellSize": 48,
@@ -81,6 +82,7 @@ fn build_level_two() -> Level {
     "info": {
       "id": 2,
       "name": "Introduction And",
+      "description": "Combine boxes 'A' and 'B' by squashing them together to form 'A ∧ B'.",
       "gridWidth": 5,
       "gridHeight": 4,
       "cellSize": 48,
@@ -116,6 +118,7 @@ fn build_level_three() -> Level {
     "info": {
       "id": 3,
       "name": "Implication",
+      "description": "Use the implication box to derive 'X' from 'A'.",
       "gridWidth": 5,
       "gridHeight": 5,
       "cellSize": 48,
@@ -142,6 +145,7 @@ fn build_level_four() -> Level {
     "info": {
       "id": 4,
       "name": "Composition",
+      "description": "Implication can be composed!",
       "gridWidth": 6,
       "gridHeight": 5,
       "cellSize": 48,
@@ -179,6 +183,7 @@ fn build_level5() -> Level {
     "info": {
       "id": 5,
       "name": "Maze",
+      "description": "Order does matter",
       "gridWidth": 7,
       "gridHeight": 7,
       "cellSize": 48,
@@ -244,7 +249,109 @@ fn build_level5() -> Level {
 
 ///|
 fn build_level6() -> Level {
-  let json : Json = {"info":{"id":6,"name":"Symmetry","gridWidth":8,"gridHeight":7,"cellSize":48},"player":{"x":3,"y":0},"boxes":[{"id":1,"pos":{"x":0,"y":2},"kind":"Wall"},{"id":2,"pos":{"x":1,"y":2},"kind":"Wall"},{"id":3,"pos":{"x":2,"y":2},"kind":"Wall"},{"id":4,"pos":{"x":4,"y":2},"kind":"Wall"},{"id":5,"pos":{"x":5,"y":2},"kind":"Wall"},{"id":6,"pos":{"x":6,"y":2},"kind":"Wall"},{"id":7,"pos":{"x":7,"y":2},"kind":"Wall"},{"id":8,"pos":{"x":4,"y":4},"kind":"Wall"},{"id":9,"pos":{"x":4,"y":3},"kind":"Wall"},{"id":10,"pos":{"x":2,"y":3},"kind":"Wall"},{"id":11,"pos":{"x":2,"y":4},"kind":"Wall"},{"id":12,"pos":{"x":2,"y":5},"kind":"Wall"},{"id":14,"pos":{"x":4,"y":5},"kind":"Wall"},{"id":15,"pos":{"x":3,"y":6},"kind":"Wall"},{"id":16,"pos":{"x":2,"y":6},"kind":"Wall"},{"id":17,"pos":{"x":4,"y":6},"kind":"Wall"},{"id":18,"pos":{"x":4,"y":1},"kind":["Prop","A"]},{"id":19,"pos":{"x":1,"y":1},"kind":["Prop","B"]},{"id":20,"pos":{"x":6,"y":1},"kind":["Prop","C"]},{"id":21,"pos":{"x":2,"y":1},"kind":["Implication",["Prop","Z"],["And",["Prop","A"],["Prop","B"]]]},{"id":22,"pos":{"x":5,"y":1},"kind":["Implication",["And",["Prop","C"],["And",["Prop","B"],["Prop","A"]]],["Prop","Z"]]}],"goals":[{"pos":{"x":3,"y":5},"prop":["And",["Prop","A"],["Prop","B"]]}]}
+  let json : Json = {
+    "info": {
+      "id": 6,
+      "name": "Symmetry",
+      "description": "And is not commutative by default.",
+      "gridWidth": 8,
+      "gridHeight": 7,
+      "cellSize": 48,
+    },
+    "player": { "x": 3, "y": 0 },
+    "boxes": [
+      { "id": 1, "pos": { "x": 0, "y": 2 }, "kind": "Wall" },
+      { "id": 2, "pos": { "x": 1, "y": 2 }, "kind": "Wall" },
+      { "id": 3, "pos": { "x": 2, "y": 2 }, "kind": "Wall" },
+      { "id": 4, "pos": { "x": 4, "y": 2 }, "kind": "Wall" },
+      { "id": 5, "pos": { "x": 5, "y": 2 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 6, "y": 2 }, "kind": "Wall" },
+      { "id": 7, "pos": { "x": 7, "y": 2 }, "kind": "Wall" },
+      { "id": 8, "pos": { "x": 4, "y": 4 }, "kind": "Wall" },
+      { "id": 9, "pos": { "x": 4, "y": 3 }, "kind": "Wall" },
+      { "id": 10, "pos": { "x": 2, "y": 3 }, "kind": "Wall" },
+      { "id": 11, "pos": { "x": 2, "y": 4 }, "kind": "Wall" },
+      { "id": 12, "pos": { "x": 2, "y": 5 }, "kind": "Wall" },
+      { "id": 14, "pos": { "x": 4, "y": 5 }, "kind": "Wall" },
+      { "id": 15, "pos": { "x": 3, "y": 6 }, "kind": "Wall" },
+      { "id": 16, "pos": { "x": 2, "y": 6 }, "kind": "Wall" },
+      { "id": 17, "pos": { "x": 4, "y": 6 }, "kind": "Wall" },
+      { "id": 18, "pos": { "x": 4, "y": 1 }, "kind": ["Prop", "A"] },
+      { "id": 19, "pos": { "x": 1, "y": 1 }, "kind": ["Prop", "B"] },
+      { "id": 20, "pos": { "x": 6, "y": 1 }, "kind": ["Prop", "C"] },
+      {
+        "id": 21,
+        "pos": { "x": 2, "y": 1 },
+        "kind": [
+          "Implication",
+          ["Prop", "Z"],
+          ["And", ["Prop", "A"], ["Prop", "B"]],
+        ],
+      },
+      {
+        "id": 22,
+        "pos": { "x": 5, "y": 1 },
+        "kind": [
+          "Implication",
+          ["And", ["Prop", "C"], ["And", ["Prop", "B"], ["Prop", "A"]]],
+          ["Prop", "Z"],
+        ],
+      },
+    ],
+    "goals": [
+      {
+        "pos": { "x": 3, "y": 5 },
+        "prop": ["And", ["Prop", "A"], ["Prop", "B"]],
+      },
+    ],
+  }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
+fn build_level7() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 7,
+      "name": "Elimination And",
+      "description": "Extract components from an 'A ∧ B' box.",
+      "gridWidth": 6,
+      "gridHeight": 6,
+      "cellSize": 48,
+    },
+    "player": { "x": 1, "y": 2 },
+    "boxes": [
+      { "id": 1, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
+      { "id": 2, "pos": { "x": 1, "y": 0 }, "kind": "Wall" },
+      { "id": 3, "pos": { "x": 2, "y": 0 }, "kind": "Wall" },
+      { "id": 4, "pos": { "x": 3, "y": 0 }, "kind": "Wall" },
+      { "id": 5, "pos": { "x": 4, "y": 0 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 5, "y": 0 }, "kind": "Wall" },
+      { "id": 7, "pos": { "x": 5, "y": 1 }, "kind": "Wall" },
+      { "id": 8, "pos": { "x": 5, "y": 2 }, "kind": "Wall" },
+      { "id": 9, "pos": { "x": 5, "y": 4 }, "kind": "Wall" },
+      { "id": 10, "pos": { "x": 5, "y": 3 }, "kind": "Wall" },
+      { "id": 11, "pos": { "x": 5, "y": 5 }, "kind": "Wall" },
+      { "id": 12, "pos": { "x": 4, "y": 5 }, "kind": "Wall" },
+      { "id": 13, "pos": { "x": 3, "y": 5 }, "kind": "Wall" },
+      { "id": 14, "pos": { "x": 2, "y": 5 }, "kind": "Wall" },
+      { "id": 17, "pos": { "x": 0, "y": 4 }, "kind": "Wall" },
+      { "id": 18, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
+      { "id": 19, "pos": { "x": 0, "y": 2 }, "kind": "Wall" },
+      { "id": 20, "pos": { "x": 0, "y": 1 }, "kind": "Wall" },
+      { "id": 22, "pos": { "x": 3, "y": 2 }, "kind": "Wall" },
+      {
+        "id": 23,
+        "pos": { "x": 2, "y": 2 },
+        "kind": ["And", ["Prop", "A"], ["Prop", "B"]],
+      },
+      { "id": 25, "pos": { "x": 3, "y": 3 }, "kind": ["Snd", null] },
+      { "id": 26, "pos": { "x": 2, "y": 1 }, "kind": ["Fst", null] },
+      { "id": 27, "pos": { "x": 1, "y": 4 }, "kind": "Wall" },
+      { "id": 28, "pos": { "x": 2, "y": 4 }, "kind": "Wall" },
+    ],
+    "goals": [{ "pos": { "x": 4, "y": 1 }, "prop": ["Prop", "B"] }],
+  }
   (try? @json.from_json(json)).unwrap()
 }
 
@@ -260,7 +367,13 @@ fn level_pool() -> Map[Int, Level] {
     4: build_level_four(),
     5: build_level5(),
     6: build_level6(),
+    7: build_level7(),
   }
+}
+
+fn get_description(levelId : Int) -> String {
+  guard find_level(levelId) is Some(level) else { return "" }
+  level.info.description
 }
 
 ///|

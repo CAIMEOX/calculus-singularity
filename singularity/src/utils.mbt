@@ -124,15 +124,16 @@ fn render_goal(boxes : Array[Box], goal : GoalView) -> String {
 ///|
 pub fn generate_panel_content(modelView : ViewModel) -> String {
   let mut content = "<h3>INFO</h3><hr>"
-  content += "<p>Level \{modelView.levelId}: \{modelView.levelName}</p>"
-  content += "<p>Grid: \{modelView.gridWidth} x \{modelView.gridHeight}</p>"
+  content += "Level \{modelView.levelId}: \{modelView.levelName}<br>"
+  content += "Grid: \{modelView.gridWidth} x \{modelView.gridHeight}<br>"
   let is_complete = if modelView.isComplete {
     "Level Complete!"
   } else {
     "In Progress"
   }
-  content += "<p>Status: \{is_complete}</p>"
-  content += "<p>Goals:</p>"
+  content += "Status: \{is_complete}<br>"
+  content += "Hint: \{get_description(modelView.levelId)}<br>"
+  content += "Goals:<br>"
   for box in modelView.boxes {
     guard box.kind != Wall else { continue }
     let temp = box.to_string() + "<br>"

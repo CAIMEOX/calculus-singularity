@@ -32,7 +32,8 @@
                 "kind_to_label",
                 "kind_to_string",
                 "build_model",
-                "enpool_level"
+                "enpool_level",
+                "generate"
             ]
         }
     }

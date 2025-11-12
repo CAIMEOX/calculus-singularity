@@ -2,6 +2,7 @@
 pub struct LevelInfo {
   id : Int
   name : String
+  description: String
   gridWidth : Int
   gridHeight : Int
   cellSize : Int
