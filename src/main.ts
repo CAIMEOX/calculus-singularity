@@ -25,7 +25,7 @@ import {
   load_from_json,
   kind_to_string,
   build_model,
-  enpool_level
+  enpool_level,
 } from "../singularity/target/js/release/build/cs.js";
 
 type CoreModel = "core-model-placeholder";
@@ -53,6 +53,9 @@ const COLORS = {
   AND_FILL: 0x352070,
   PI_FILL: 0x0c3c7a,
 };
+
+const BACKGROUND_MUSIC_SRC = new URL("./assets/ah.mp3", import.meta.url).href;
+let backgroundMusic: HTMLAudioElement | null = null;
 
 const thumbnailStore = new Map<number, string>();
 const placeholderThumbnail = createPlaceholderThumbnail();
@@ -205,6 +208,45 @@ function createPixiApplication(width: number, height: number) {
   });
 }
 
+// Kick background music off once the browser allows audio playback.
+function setupBackgroundMusic() {
+  if (backgroundMusic) {
+    return backgroundMusic;
+  }
+  const audio = new Audio(BACKGROUND_MUSIC_SRC);
+  audio.loop = true;
+  audio.volume = 0.35;
+  backgroundMusic = audio;
+
+  function detachInteractionHandlers() {
+    window.removeEventListener("pointerdown", resumePlayback);
+    window.removeEventListener("keydown", resumePlayback);
+  }
+
+  function attachInteractionHandlers() {
+    detachInteractionHandlers();
+    window.addEventListener("pointerdown", resumePlayback, { once: true });
+    window.addEventListener("keydown", resumePlayback, { once: true });
+  }
+
+  function resumePlayback() {
+    audio
+      .play()
+      .then(() => {
+        detachInteractionHandlers();
+      })
+      .catch(() => {
+        attachInteractionHandlers();
+      });
+  }
+
+  audio.play().catch(() => {
+    attachInteractionHandlers();
+  });
+
+  return audio;
+}
+
 function applyCanvasSize(
   app: PIXI.Application,
   gridWidth: number,
@@ -248,6 +290,7 @@ function main() {
     cellSize: viewModel.cellSize,
   };
   let needsStageRebuild = false;
+  setupBackgroundMusic();
 
   const levelCatalog = (level_infos() ?? []) as LevelInfo[];
   const levelHotkeys = new Map<string, number>();

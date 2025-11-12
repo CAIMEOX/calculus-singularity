@@ -1,1 +1,1 @@
-# Singularity Calculus 
+# Singularity Calculus

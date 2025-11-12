@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
-import chokidar from "chokidar";
 
 export default defineConfig({
   server: {
