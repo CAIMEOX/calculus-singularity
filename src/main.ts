@@ -209,15 +209,13 @@ function applyCanvasSize(
 
 function mount(app: PIXI.Application) {
   const container = document.getElementById("game-container")!;
-  container.style.display = "flex";
-  container.style.alignItems = "flex-start";
-  container.style.gap = "16px";
+  container.classList.add("game-container");
 
   const { panel: backupPanel, list: backupList } = createBackupPanel();
   container.appendChild(backupPanel);
 
   const stageWrapper = document.createElement("div");
-  stageWrapper.style.flex = "0 0 auto";
+  stageWrapper.className = "stage-wrapper";
   stageWrapper.appendChild(app.view as HTMLCanvasElement);
   container.appendChild(stageWrapper);
 

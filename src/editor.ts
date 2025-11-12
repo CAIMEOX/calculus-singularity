@@ -49,234 +49,6 @@ const TOOLBAR: ToolDefinition[] = [
   { id: "erase", label: "删除", description: "清除该格的内容" },
 ];
 
-const styles = `
-.editor-layout {
-  display: flex;
-  gap: 24px;
-  padding: 24px;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-.editor-left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.editor-panel {
-  background: #1a1a1d;
-  border: 1px solid #26262b;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
-}
-.editor-panel h2 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  letter-spacing: 0.05em;
-  color: #6cf0ff;
-}
-.editor-grid {
-  display: grid;
-  gap: 4px;
-  background: #090909;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #2a2a33;
-  overflow: auto;
-}
-.editor-cell {
-  background: #141414;
-  border: 1px dashed #333;
-  width: var(--cell-size, 48px);
-  height: var(--cell-size, 48px);
-  position: relative;
-  border-radius: 6px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #f5f5f5;
-  font-size: 14px;
-  user-select: none;
-}
-.editor-cell:hover {
-  border-color: #5ec2ff;
-}
-.editor-box {
-  position: absolute;
-  inset: 4px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 4px rgba(0,0,0,0.4);
-}
-.editor-goal {
-  position: absolute;
-  bottom: 2px;
-  left: 4px;
-  right: 4px;
-  font-size: 12px;
-  text-align: center;
-  padding: 1px 2px;
-  border-radius: 4px;
-  background: rgba(46, 245, 160, 0.25);
-  border: 1px solid rgba(46, 245, 160, 0.6);
-}
-.editor-player {
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  font-size: 18px;
-  color: #00d9ff;
-  text-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
-}
-.toolbar {
-  width: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.tool-item {
-  border: 1px solid #2f2f36;
-  padding: 10px;
-  border-radius: 6px;
-  background: #1c1c21;
-  cursor: grab;
-}
-.tool-item:active {
-  cursor: grabbing;
-}
-.tool-item strong {
-  display: block;
-  font-size: 14px;
-  color: #fff;
-}
-.tool-item span {
-  font-size: 12px;
-  color: #aaa;
-}
-.meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 8px;
-}
-.meta-grid label {
-  display: flex;
-  flex-direction: column;
-  font-size: 12px;
-  color: #ccc;
-  gap: 4px;
-}
-.meta-grid input {
-  background: #0f0f12;
-  border: 1px solid #2b2b32;
-  border-radius: 4px;
-  padding: 6px 8px;
-  color: #fff;
-}
-.button-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-button {
-  border: 1px solid #4e4ef5;
-  background: #2c2cff;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-button.secondary {
-  border-color: #3a3a3f;
-  background: #242428;
-}
-textarea {
-  width: 100%;
-  min-height: 120px;
-  background: #050506;
-  color: #9fffe0;
-  border: 1px solid #1f1f24;
-  border-radius: 6px;
-  padding: 10px;
-  box-sizing: border-box;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 12px;
-}
-.status-line {
-  font-size: 12px;
-  color: #8fe8ff;
-}
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.modal-panel {
-  width: min(420px, 90vw);
-  background: #111119;
-  border: 1px solid #2d2d34;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
-}
-.modal-panel h3 {
-  margin: 0 0 10px 0;
-  font-size: 18px;
-  color: #7ae7ff;
-}
-.modal-panel p {
-  margin: 0 0 12px 0;
-  font-size: 13px;
-  color: #aaa;
-}
-.modal-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.modal-form label {
-  font-size: 13px;
-  color: #ddd;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.modal-form input,
-.modal-form textarea {
-  background: #050509;
-  border: 1px solid #2a2a33;
-  border-radius: 6px;
-  padding: 8px 10px;
-  color: #d0f8ff;
-  font-family: "Courier New", Courier, monospace;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
-}
-.modal-actions button {
-  padding: 6px 14px;
-}
-.editor-cell.selected {
-  border-color: #00f0ff;
-  box-shadow: 0 0 6px rgba(0, 240, 255, 0.7);
-}
-`;
-
-const styleTag = document.createElement("style");
-styleTag.textContent = styles;
-document.head.appendChild(styleTag);
-
 const root = document.getElementById("editor-root");
 if (!root) {
   throw new Error("Editor root element not found");
@@ -404,8 +176,8 @@ function createEmptyLevel(): Level {
     info: {
       id: 1000,
       name: "新关卡",
-      gridWidth: 10,
-      gridHeight: 8,
+      gridWidth: 6,
+      gridHeight: 6,
       cellSize: 48,
     },
     player: { x: 0, y: 0 },
@@ -419,10 +191,12 @@ function computeNextBoxId(boxes: LevelBox[]): number {
 }
 
 function cloneLevelData(value: Level): Level {
-  if (typeof structuredClone === "function") {
-    return structuredClone(value);
+  const serialized = save_to_json(value);
+  const parsed = load_from_json(serialized);
+  if (!parsed || parsed.$tag === 0) {
+    throw new Error("无法克隆 Level 数据");
   }
-  return JSON.parse(JSON.stringify(value));
+  return parsed._0 as Level;
 }
 
 function clampLevelEntities() {
@@ -447,7 +221,6 @@ function clampLevelEntities() {
 
 function setLevel(newLevel: Level) {
   level = cloneLevelData(newLevel);
-  rehydrateLevelKinds(level);
   clampLevelEntities();
   nextBoxId = computeNextBoxId(level.boxes);
   clearSelectedCell();
@@ -475,7 +248,6 @@ function undoLastEdit() {
     return;
   }
   level = cloneLevelData(snapshot);
-  rehydrateLevelKinds(level);
   clampLevelEntities();
   nextBoxId = computeNextBoxId(level.boxes);
   renderAll();
@@ -865,9 +637,7 @@ function renderToolbar() {
   title.textContent = "工具箱 (拖动到网格)";
   panel.appendChild(title);
   const list = document.createElement("div");
-  list.style.display = "flex";
-  list.style.flexDirection = "column";
-  list.style.gap = "8px";
+  list.className = "toolbar-list";
   TOOLBAR.forEach((tool) => {
     const item = document.createElement("div");
     item.className = "tool-item";
@@ -1089,7 +859,6 @@ function deleteSelectedCell() {
     setStatus("该格没有可删除的节点", true);
     return;
   }
-  pushHistory();
   if (hasBox) {
     level.boxes = level.boxes.filter(
       (box) => !(box.pos.x === x && box.pos.y === y)
@@ -1101,6 +870,7 @@ function deleteSelectedCell() {
   } else if (hasPlayer) {
     level.player = { x: 0, y: 0 };
   }
+  pushHistory();
   renderAll();
   setStatus("已删除选中节点");
 }
@@ -1288,17 +1058,6 @@ async function promptForKindInput(
       initial = expr;
     }
   }
-}
-
-function rehydrateLevelKinds(target: Level) {
-  target.boxes = target.boxes.map((box) => ({
-    ...box,
-    kind: compose_kind(kind_to_string(box.kind)),
-  }));
-  target.goals = target.goals.map((goal) => ({
-    ...goal,
-    prop: compose_kind(kind_to_string(goal.prop)),
-  }));
 }
 
 function isTypingTarget(el: Element | null) {
