@@ -3,7 +3,7 @@
 pub struct Vector {
   x : Int
   y : Int
-} derive(@json.FromJson, ToJson)
+} derive(@json.FromJson, ToJson, Eq)
 
 ///|
 /// Box entity that can be pushed around by the player
@@ -75,7 +75,7 @@ pub struct Goal {
 ///|
 pub struct GoalView {
   pos : Vector
-  prop : String
+  prop : Kind
   satisfied : Bool
 }
 

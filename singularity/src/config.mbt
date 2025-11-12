@@ -77,67 +77,103 @@ fn build_level_one() -> Level {
 
 ///|
 fn build_level_two() -> Level {
-  let boxes : Array[Box] = Array::new(capacity=11)
-  boxes.push(make_prop_box(1, 2, 5, "A"))
-  boxes.push(make_prop_box(2, 3, 5, "B"))
-  boxes.push(make_prop_box(3, 2, 3, "A"))
-  boxes.push(make_prop_box(4, 3, 3, "B"))
-  boxes.push(make_pi1_box(5, 6, 4))
-  boxes.push(make_pi2_box(6, 7, 4))
-  boxes.push(make_implication_box(7, 4, 6, "B", "C"))
-  boxes.push(make_prop_box(8, 5, 6, "C"))
-  boxes.push(make_wall(9, 5, 2))
-  boxes.push(make_wall(10, 5, 3))
-  boxes.push(make_wall(11, 5, 4))
-  let goals : Array[Goal] = Array::new(capacity=2)
-  goals.push(make_goal(10, 3, "A"))
-  goals.push(make_goal(10, 4, "B"))
-  {
-    info: {
-      id: 2,
-      name: "合取演算",
-      gridWidth: 12,
-      gridHeight: 10,
-      cellSize: 46,
+  let json : Json = {
+    "info": {
+      "id": 2,
+      "name": "Introduction And",
+      "gridWidth": 5,
+      "gridHeight": 4,
+      "cellSize": 48,
     },
-    player: { x: 1, y: 4 },
-    boxes,
-    goals,
+    "player": { "x": 2, "y": 2 },
+    "boxes": [
+      { "id": 1, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
+      { "id": 5, "pos": { "x": 4, "y": 2 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 4, "y": 1 }, "kind": "Wall" },
+      { "id": 7, "pos": { "x": 4, "y": 3 }, "kind": "Wall" },
+      { "id": 8, "pos": { "x": 4, "y": 0 }, "kind": "Wall" },
+      { "id": 9, "pos": { "x": 3, "y": 0 }, "kind": "Wall" },
+      { "id": 10, "pos": { "x": 1, "y": 0 }, "kind": "Wall" },
+      { "id": 11, "pos": { "x": 2, "y": 0 }, "kind": "Wall" },
+      { "id": 12, "pos": { "x": 2, "y": 1 }, "kind": ["Prop", "B"] },
+      { "id": 13, "pos": { "x": 1, "y": 2 }, "kind": ["Prop", "A"] },
+      { "id": 15, "pos": { "x": 3, "y": 3 }, "kind": "Wall" },
+      { "id": 17, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
+    ],
+    "goals": [
+      {
+        "pos": { "x": 3, "y": 1 },
+        "prop": ["And", ["Prop", "A"], ["Prop", "B"]],
+      },
+    ],
   }
+  (try? @json.from_json(json)).unwrap()
 }
 
 ///|
 fn build_level_three() -> Level {
-  let boxes : Array[Box] = Array::new(capacity=13)
-  boxes.push(make_prop_box(1, 3, 3, "A"))
-  boxes.push(make_implication_box(2, 4, 3, "A", "B"))
-  boxes.push(make_implication_box(3, 5, 3, "B", "C"))
-  boxes.push(make_prop_box(4, 2, 6, "D"))
-  boxes.push(make_prop_box(5, 3, 6, "E"))
-  boxes.push(make_and_box(6, 7, 5, "D", "E"))
-  boxes.push(make_pi1_box(7, 9, 4))
-  boxes.push(make_pi2_box(8, 9, 6))
-  boxes.push(make_implication_box(9, 6, 2, "C", "F"))
-  boxes.push(make_prop_box(10, 4, 7, "F"))
-  boxes.push(make_wall(11, 6, 4))
-  boxes.push(make_wall(12, 6, 5))
-  boxes.push(make_wall(13, 6, 6))
-  let goals : Array[Goal] = Array::new(capacity=3)
-  goals.push(make_goal(11, 3, "C"))
-  goals.push(make_goal(12, 5, "D"))
-  goals.push(make_goal(12, 6, "E"))
-  {
-    info: {
-      id: 3,
-      name: "演绎乐章",
-      gridWidth: 14,
-      gridHeight: 10,
-      cellSize: 44,
+  let json : Json = {
+    "info": {
+      "id": 3,
+      "name": "Implication",
+      "gridWidth": 5,
+      "gridHeight": 5,
+      "cellSize": 48,
     },
-    player: { x: 1, y: 2 },
-    boxes,
-    goals,
+    "player": { "x": 0, "y": 0 },
+    "boxes": [
+      {
+        "id": 7,
+        "pos": { "x": 1, "y": 2 },
+        "kind": ["Implication", ["Prop", "A"], ["Prop", "X"]],
+      },
+      { "id": 8, "pos": { "x": 3, "y": 2 }, "kind": ["Prop", "A"] },
+      { "id": 9, "pos": { "x": 2, "y": 2 }, "kind": "Wall" },
+      { "id": 11, "pos": { "x": 4, "y": 1 }, "kind": "Wall" },
+    ],
+    "goals": [{ "pos": { "x": 2, "y": 1 }, "prop": ["Prop", "X"] }],
   }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
+fn build_level_four() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 4,
+      "name": "Nested Application",
+      "gridWidth": 6,
+      "gridHeight": 4,
+      "cellSize": 48,
+    },
+    "player": { "x": 0, "y": 1 },
+    "boxes": [
+      // Outer walls
+      { "id": 1, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
+      { "id": 2, "pos": { "x": 5, "y": 0 }, "kind": "Wall" },
+      { "id": 3, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
+      { "id": 4, "pos": { "x": 5, "y": 3 }, "kind": "Wall" },
+      { "id": 5, "pos": { "x": 2, "y": 0 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 3, "y": 3 }, "kind": "Wall" },
+
+      // Items to combine (A and B are placed orthogonally to force a movement path)
+      { "id": 7, "pos": { "x": 1, "y": 1 }, "kind": ["Prop", "A"] },
+      { "id": 8, "pos": { "x": 2, "y": 2 }, "kind": ["Prop", "B"] },
+
+      // The Implication block, isolated
+      {
+        "id": 9,
+        "pos": { "x": 4, "y": 1 },
+        "kind": [
+          "Implication",
+          ["And", ["Prop", "A"], ["Prop", "B"]],
+          ["Prop", "X"],
+        ],
+      },
+    ],
+    "goals": [{ "pos": { "x": 5, "y": 2 }, "prop": ["Prop", "X"] }],
+  }
+  (try? @json.from_json(json)).unwrap()
 }
 
 ///|
@@ -146,6 +182,7 @@ fn level_pool() -> Array[Level] {
   levels.push(build_level_one())
   levels.push(build_level_two())
   levels.push(build_level_three())
+  levels.push(build_level_four())
   levels
 }
 

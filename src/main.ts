@@ -17,6 +17,7 @@ import {
   get_active_backup_meta,
   level_infos,
   view as moonView,
+  kind_to_label,
 } from "../singularity/target/js/release/build/cs.js";
 
 type CoreModel = "core-model-placeholder";
@@ -112,7 +113,7 @@ function renderBoxes(
 ) {
   layer.removeChildren().forEach((child) => child.destroy());
   view.boxes.forEach((box) => {
-    const visual = createBox(style_for_kind(box.kind, view.cellSize,));
+    const visual = createBox(style_for_kind(box.kind, view.cellSize));
     const pos = toPixels(view.cellSize, box.pos);
     visual.x = pos.x;
     visual.y = pos.y;
@@ -141,7 +142,7 @@ function renderGoals(layer: PIXI.Container, view: ViewModel) {
     const size = view.cellSize * 0.76;
     gfx.drawRoundedRect(offset, offset, size, size, 6);
     gfx.endFill();
-    const text = new PIXI.Text(goal.prop, {
+    const text = new PIXI.Text(kind_to_label(goal.prop), {
       fontFamily: '"Courier New", Courier, monospace',
       fontSize: Math.max(14, view.cellSize * 0.35),
       fill: goal.satisfied ? 0x1c1c1c : 0xffffff,
@@ -178,7 +179,10 @@ function createRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
   return { goalLayer, boxLayer, player };
 }
 
-function rebuildRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
+function rebuildRenderer(
+  app: PIXI.Application,
+  view: ViewModel
+): RenderContext {
   clearStage(app.stage);
   return createRenderer(app, view);
 }

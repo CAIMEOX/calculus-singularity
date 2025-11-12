@@ -4,11 +4,6 @@ fn box_by_id(boxes : Array[Box], id : Int) -> Box? {
 }
 
 ///|
-fn Box::on_goal(self : Box, goals : Array[GoalView]) -> Bool {
-  goals.iter().any(g => same_position(self.pos, g.pos))
-}
-
-///|
 pub impl Show for Kind with to_string(self) {
   match self {
     Wall => "Wall"
@@ -45,9 +40,7 @@ pub impl Show for Kind with output(self, f) {
 
 ///|
 pub impl Show for Box with output(self, f) {
-  f.write_string(
-    "Box \{self.id}: \{self.kind} @ (\{self.pos.x}, \{self.pos.y})",
-  )
+  f.write_string("\{self.kind} @ (\{self.pos.x}, \{self.pos.y})")
 }
 
 ///|
@@ -102,6 +95,33 @@ fn compose_hovered(s : String) -> String {
 }
 
 ///|
+fn compose_proved(s : String) -> String {
+  "<span style=\"font-weight: bold; color: #00FF00;\">\{s}</span>"
+}
+
+///|
+fn compose_unexpected(s : String) -> String {
+  "<span style=\"font-weight: bold; color: #FF0000;\">\{s}</span>"
+}
+
+///|
+fn render_goal(boxes : Array[Box], goal : GoalView) -> String {
+  if goal.satisfied {
+    compose_proved("⊢ \{goal.prop} @ (\{goal.pos.x}, \{goal.pos.y})")
+  } else {
+    for b in boxes {
+      if b.pos == goal.pos && b.kind != goal.prop {
+        break compose_unexpected(
+          "⊢ expected \{goal.prop} but got \{b.kind} @ (\{goal.pos.x}, \{goal.pos.y})",
+        )
+      }
+    } else {
+      "⊢ \{goal.prop} @ (\{goal.pos.x}, \{goal.pos.y})"
+    }
+  }
+}
+
+///|
 pub fn generate_panel_content(modelView : ViewModel) -> String {
   let mut content = "<h3>INFO</h3><hr>"
   content += "<p>Level \{modelView.levelId}: \{modelView.levelName}</p>"
@@ -112,22 +132,18 @@ pub fn generate_panel_content(modelView : ViewModel) -> String {
     "In Progress"
   }
   content += "<p>Status: \{is_complete}</p>"
-  content += "<p>Keys: 1-9 切换关卡 · Z 撤销 · B 备份 · R 重置</p>"
-  content += "<p>逻辑法则：命题+命题→合取 · A→B 与 A 合并生成 B · π₁/π₂ 提取合取左右命题</p>"
   content += "<p>Goals:</p>"
-  for goal in modelView.goals {
-    let status = if goal.satisfied { "✅" } else { "…" }
-    content += "\{status} \{goal.prop} @ (\{goal.pos.x}, \{goal.pos.y})<br>"
-  }
   for box in modelView.boxes {
     guard box.kind != Wall else { continue }
-    let on_goal = if box.on_goal(modelView.goals) { "Yes" } else { "No" }
-    let temp = box.to_string() + "<br>On Goal: \{on_goal}</br>"
+    let temp = box.to_string() + "<br>"
     content += if modelView.hoveredBoxId is Some(id) && box.id == id {
       compose_hovered(temp)
     } else {
       temp
     }
+  }
+  for goal in modelView.goals {
+    content += render_goal(modelView.boxes, goal) + "<br>"
   }
   content
 }

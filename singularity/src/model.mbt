@@ -350,7 +350,7 @@ fn build_goal_views(goals : Array[Goal], boxes : Array[Box]) -> Array[GoalView] 
     let goal = goals[idx]
     views.push({
       pos: goal.pos,
-      prop: goal.prop.to_string(),
+      prop: goal.prop,
       satisfied: goal_satisfied(goal.pos, goal.prop, boxes),
     })
     idx += 1
