@@ -30,7 +30,7 @@ jobs:
           moonrun --version
 
       - name: Install dependencies
-        run: ｜
+        run: |
           rm -rf package-lock.json
           npm install
 
