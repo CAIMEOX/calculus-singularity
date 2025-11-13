@@ -9,7 +9,7 @@ interface MobileControlsHandle {
   element: HTMLElement;
 }
 
-const LANDSCAPE_MAX_WIDTH = 1100;
+const LANDSCAPE_MAX_WIDTH = 1400;
 const MOBILE_LAYOUT_CLASS = "mobile-landscape";
 
 export function createMobileControls(
@@ -19,10 +19,10 @@ export function createMobileControls(
   const controls = document.createElement("div");
   controls.className = "mobile-controls";
 
-  const title = document.createElement("p");
-  title.className = "mobile-controls__label";
-  title.textContent = "Touch Controls";
-  controls.appendChild(title);
+  // const title = document.createElement("p");
+  // title.className = "mobile-controls__label";
+  // title.textContent = "Touch Controls";
+  // controls.appendChild(title);
 
   const body = document.createElement("div");
   body.className = "mobile-controls__body";

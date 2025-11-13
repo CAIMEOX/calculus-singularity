@@ -257,8 +257,8 @@ canvas {
 
 .mobile-controls {
   display: none;
-  width: min(100%, 480px);
-  padding: 16px 20px;
+  width: min(100%, 440px);
+  padding: 14px 16px;
   border-radius: 12px;
   border: 1px solid #25252a;
   background: rgba(8, 8, 12, 0.9);
@@ -282,22 +282,22 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 16px;
   width: 100%;
   flex-wrap: nowrap;
 }
 
 .mobile-controls__dpad {
   display: grid;
-  grid-template-columns: repeat(3, 54px);
-  grid-template-rows: repeat(3, 54px);
-  gap: 8px;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 48px);
+  gap: 6px;
 }
 
 .mobile-controls__dpad-button {
-  width: 54px;
-  height: 54px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   border: 1px solid #36363f;
   background: #1a1a22;
   color: #e4e4f5;
@@ -332,8 +332,8 @@ canvas {
 }
 
 .mobile-controls__action-button {
-  width: 64px;
-  height: 64px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   border: 1px solid #41414b;
   background: radial-gradient(circle at 30% 30%, #4f7dff, #3240ff);
@@ -364,15 +364,17 @@ body.mobile-landscape .game-container {
 
 body.mobile-landscape .stage-wrapper {
   grid-column: 2;
-  width: 100%;
-  max-width: 640px;
+  width: min(100%, 600px, max(0px, calc(100vh - 160px)));
+  max-width: none;
   min-height: auto;
-  padding: 12px;
+  padding: 10px;
 }
 
 body.mobile-landscape .stage-wrapper canvas {
-  width: 100% !important;
-  height: auto !important;
+  max-width: 100%;
+  height: auto;
+  width: auto;
+  max-height: calc(100vh - 250px);
 }
 
 body.mobile-landscape .backup-panel,
@@ -380,7 +382,8 @@ body.mobile-landscape .info-panel {
   position: static;
   width: 100%;
   max-width: none;
-  max-height: none;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
 }
 
 body.mobile-landscape .backup-panel {
