@@ -1,29 +1,6 @@
 ///|
 const DEFAULT_LEVEL_ID : Int = 1
 
-///|
-const WALL_FILL : Int = 0x2c2c2c
-
-///|
-const WALL_BORDER : Int = 0x0f0f0f
-
-///|
-const PROP_FILL : Int = 0x1f8a70
-
-///|
-const PROP_BORDER : Int = 0x4efee8
-
-///|
-const IMPLICATION_FILL : Int = 0x6a381f
-
-///|
-const AND_FILL : Int = 0x352070
-
-///|
-const AND_BORDER : Int = 0xb094ff
-
-///|
-const PI_FILL : Int = 0x0c3c7a
 
 ///|
 fn build_level1() -> Level {

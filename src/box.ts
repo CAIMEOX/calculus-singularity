@@ -1,7 +1,5 @@
 import * as PIXI from "pixi.js";
-import { kind_to_label } from "../singularity/target/js/release/build/cs";
-import { COLORS } from "./main";
-import { Kind } from "./types";
+import { styleForKind } from "./utils";
 
 export interface BoxStyle {
   size: number;
@@ -19,60 +17,6 @@ const baseStyle: BoxStyle = {
   borderWidth: 1.5,
   symbolFont: 'bold 24px "Courier New", Courier, monospace',
 };
-
-export function styleForKind(kind: Kind): {
-  fillColor: number;
-  borderColor: number;
-  symbol: string;
-  borderWidth?: number;
-} {
-  let label = kind_to_label(kind);
-  switch (label) {
-    case "Wall":
-      return {
-        fillColor: COLORS.WALL_FILL,
-        borderColor: COLORS.WALL_BORDER,
-        symbol: "",
-        borderWidth: 0,
-      };
-    case "→":
-      return {
-        fillColor: COLORS.IMPLICATION_FILL,
-        borderColor: COLORS.IMPLICATION_BORDER,
-        symbol: "→",
-      };
-    case "∧":
-      return {
-        fillColor: COLORS.AND_FILL,
-        borderColor: COLORS.AND_BORDER,
-        symbol: "∧",
-      };
-    case "π₁":
-      return {
-        fillColor: COLORS.PI1_FILL,
-        borderColor: COLORS.PI1_BORDER,
-        symbol: "π₁",
-      };
-    case "π₂":
-      return {
-        fillColor: COLORS.PI2_FILL,
-        borderColor: COLORS.PI2_BORDER,
-        symbol: "π₂",
-      };
-    case "¬":
-      return {
-        fillColor: COLORS.NEG_FILL,
-        borderColor: COLORS.NEG_BORDER,
-        symbol: "¬",
-      };
-    default:
-      return {
-        fillColor: COLORS.PROP_FILL,
-        borderColor: COLORS.PROP_BORDER,
-        symbol: label,
-      };
-  }
-}
 
 export function createBox(
   style: {

@@ -1,11 +1,11 @@
 import * as PIXI from "pixi.js";
-import { createBox, styleForKind } from "./box";
+import { createBox,  } from "./box";
 import {
   createInfoPanel,
   updateInfoPanel,
   InfoPanelElements,
 } from "./infoPanel";
-import { Vector2, ViewModel, LevelInfo, Level, CoreModel, Kind } from "./types";
+import { Vector2, ViewModel, LevelInfo, CoreModel } from "./types";
 import { createBackupPanel, renderBackupPanel } from "./backupPanel";
 import { createMobileControls } from "./mobileControls";
 import {
@@ -23,10 +23,10 @@ import {
   view as moonView,
   kind_to_label,
   load_from_json,
-  kind_to_string,
   build_model,
   enpool_level,
 } from "../singularity/target/js/release/build/cs.js";
+import { COLORS, styleForKind } from "./utils.js";
 
 interface BackupMeta {
   id: number;
@@ -35,29 +35,7 @@ interface BackupMeta {
   timestamp: number;
 }
 
-export const COLORS = {
-  GRID: 0x444444,
-  PLAYER_FILL: 0x222233,
-  PLAYER_BORDER: 0x00ffff,
-  BOX_FILL: 0x332222,
-  BOX_BORDER: 0xffa500,
-  WALL_FILL: 0x2c2c2c,
-  WALL_BORDER: 0x0f0f0f,
-  GOAL: 0x2ef5a0,
-  GOAL_COMPLETE: 0xf5d142,
-  PROP_FILL: 0x1f8a70,
-  PROP_BORDER: 0x4efee8,
-  IMPLICATION_FILL: 0x6a381f,
-  IMPLICATION_BORDER: 0xff7f3d,
-  AND_FILL: 0x352070,
-  AND_BORDER: 0xa66aff,
-  PI1_FILL: 0x0c3c7a,
-  PI1_BORDER: 0x3ab0ff,
-  PI2_FILL: 0x0c3c7a,
-  PI2_BORDER: 0x3ab0ff,
-  NEG_FILL: 0x701919,
-  NEG_BORDER: 0xff4d4d,
-};
+
 
 const BACKGROUND_MUSIC_SRC = new URL("./assets/ah.mp3", import.meta.url).href;
 let backgroundMusic: HTMLAudioElement | null = null;

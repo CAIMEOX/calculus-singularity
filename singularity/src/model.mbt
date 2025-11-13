@@ -262,6 +262,9 @@ fn fusion_result(first : Kind, second : Kind) -> Kind? {
     (And(_) as a, Prop(b)) => Some(And(a, Prop(b)))
     // (Neg(Some(x)), Neg(None)) | (Neg(None), Neg(Some(x))) => Some(x)
     (Neg(None), y) | (y, Neg(None)) => Some(Neg(Some(y)))
+    (Neg(Some(_)) as l, Neg(Some(_)) as r) => Some(And(l, r))
+    (Prop(_) as l, Neg(Some(_)) as r) | (Neg(Some(_)) as l, Prop(_) as r) =>
+      Some(And(l, r))
     (And(_) as l, And(_) as r) => Some(And(l, r))
     (And(_) as l, Neg(Some(_)) as r) | (Neg(Some(_)) as l, And(_) as r) =>
       Some(And(l, r))

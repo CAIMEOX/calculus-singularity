@@ -9,11 +9,11 @@ import {
   make_pi2_box,
   make_negation_box,
   make_negation_box_with_inner,
-  style_for_kind,
   compose_kind,
   kind_to_label,
   kind_to_string,
 } from "../singularity/target/js/release/build/cs.js";
+import { styleForKind } from "./utils.js";
 import { Level, LevelBox, LevelInfo, Vector2 } from "./types";
 
 type ToolId =
@@ -553,7 +553,15 @@ function renderGrid() {
 
       const box = boxAt(x, y);
       if (box) {
-        const style = style_for_kind(box.kind, level.info.cellSize);
+        const style = styleForKind(box.kind) as {
+          fillColor: number;
+          borderColor: number;
+          symbol: string;
+          size: number;
+          borderWidth: number;
+        };
+        style.borderWidth = 2;
+        style.size = level.info.cellSize;
         const boxNode = document.createElement("div");
         boxNode.className = "editor-box";
         boxNode.style.background = toHex(style.fillColor);

@@ -16,7 +16,6 @@
                 "view",
                 "generate_panel_content",
                 "level_infos",
-                "style_for_kind",
                 "load_from_json",
                 "save_to_json",
                 "make_wall",
