@@ -3,7 +3,7 @@ name: Build macOS DMG
 on:
   push:
     branches:
-      - main-tmp-disable
+      - main
   workflow_dispatch:
 
 jobs:
