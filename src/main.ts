@@ -1,11 +1,11 @@
 import * as PIXI from "pixi.js";
-import { createBox } from "./box";
+import { createBox, styleForKind } from "./box";
 import {
   createInfoPanel,
   updateInfoPanel,
   InfoPanelElements,
 } from "./infoPanel";
-import { Vector2, ViewModel, LevelInfo, Level } from "./types";
+import { Vector2, ViewModel, LevelInfo, Level, CoreModel, Kind } from "./types";
 import { createBackupPanel, renderBackupPanel } from "./backupPanel";
 import {
   init_model,
@@ -14,7 +14,6 @@ import {
   hover_box,
   clear_hover,
   undo,
-  style_for_kind,
   save_backup,
   list_backups,
   restore_backup,
@@ -28,8 +27,6 @@ import {
   enpool_level,
 } from "../singularity/target/js/release/build/cs.js";
 
-type CoreModel = "core-model-placeholder";
-
 interface BackupMeta {
   id: number;
   parentId: number | null;
@@ -37,7 +34,7 @@ interface BackupMeta {
   timestamp: number;
 }
 
-const COLORS = {
+export const COLORS = {
   GRID: 0x444444,
   PLAYER_FILL: 0x222233,
   PLAYER_BORDER: 0x00ffff,
@@ -50,8 +47,15 @@ const COLORS = {
   PROP_FILL: 0x1f8a70,
   PROP_BORDER: 0x4efee8,
   IMPLICATION_FILL: 0x6a381f,
+  IMPLICATION_BORDER: 0xff7f3d,
   AND_FILL: 0x352070,
-  PI_FILL: 0x0c3c7a,
+  AND_BORDER: 0xa66aff,
+  PI1_FILL: 0x0c3c7a,
+  PI1_BORDER: 0x3ab0ff,
+  PI2_FILL: 0x0c3c7a,
+  PI2_BORDER: 0x3ab0ff,
+  NEG_FILL: 0x701919,
+  NEG_BORDER: 0xff4d4d,
 };
 
 const BACKGROUND_MUSIC_SRC = new URL("./assets/ah.mp3", import.meta.url).href;
@@ -124,7 +128,7 @@ function renderBoxes(
 ) {
   layer.removeChildren().forEach((child) => child.destroy());
   view.boxes.forEach((box) => {
-    const visual = createBox(style_for_kind(box.kind, view.cellSize));
+    const visual = createBox(styleForKind(box.kind), view.cellSize);
     const pos = toPixels(view.cellSize, box.pos);
     visual.x = pos.x;
     visual.y = pos.y;
@@ -155,7 +159,7 @@ function renderGoals(layer: PIXI.Container, view: ViewModel) {
     gfx.endFill();
     const text = new PIXI.Text(kind_to_label(goal.prop), {
       fontFamily: '"Courier New", Courier, monospace',
-      fontSize: Math.max(14, view.cellSize * 0.35),
+      fontSize: Math.max(18, view.cellSize * 0.35),
       fill: goal.satisfied ? 0x1c1c1c : 0xffffff,
       align: "center",
     });
@@ -183,7 +187,7 @@ function createRenderer(app: PIXI.Application, view: ViewModel): RenderContext {
   drawGrid(app.stage, view.gridWidth, view.gridHeight, view.cellSize);
   const goalLayer = new PIXI.Container();
   const boxLayer = new PIXI.Container();
-  const player = createBox(playerStyle(view.cellSize));
+  const player = createBox(playerStyle(view.cellSize), view.cellSize);
   app.stage.addChild(goalLayer);
   app.stage.addChild(boxLayer);
   app.stage.addChild(player);
@@ -261,9 +265,10 @@ function applyCanvasSize(
   canvas.style.height = `${height}px`;
 }
 
-function mount(
-  app: PIXI.Application
-): { infoPanel: InfoPanelElements; backupList: HTMLElement } {
+function mount(app: PIXI.Application): {
+  infoPanel: InfoPanelElements;
+  backupList: HTMLElement;
+} {
   const container = document.getElementById("game-container")!;
   container.classList.add("game-container");
 
@@ -348,7 +353,9 @@ function main() {
   };
 
   const updateNextLevelControl = (view: ViewModel) => {
-    const levelIndex = levelCatalog.findIndex((level) => level.id === view.levelId);
+    const levelIndex = levelCatalog.findIndex(
+      (level) => level.id === view.levelId
+    );
     const hasNext =
       view.isComplete &&
       levelIndex >= 0 &&
@@ -512,7 +519,8 @@ function openJsonModal(): Promise<string | null> {
     modal.appendChild(title);
 
     const description = document.createElement("p");
-    description.textContent = "Paste the level JSON data below to load a custom level";
+    description.textContent =
+      "Paste the level JSON data below to load a custom level";
     modal.appendChild(description);
 
     const form = document.createElement("form");
@@ -567,52 +575,6 @@ function openJsonModal(): Promise<string | null> {
     document.addEventListener("keydown", onKeyDown);
     document.body.appendChild(overlay);
     requestAnimationFrame(() => textarea.focus());
-  });
-}
-
-function buildModelFromLevel(level: Level) {
-  const boxes = level.boxes.map((box) => ({
-    id: box.id,
-    pos: { x: box.pos.x, y: box.pos.y },
-    kind: box.kind,
-  }));
-  const goals = level.goals.map((goal) => ({
-    pos: { x: goal.pos.x, y: goal.pos.y },
-    prop: goal.prop,
-  }));
-  return {
-    player: { x: level.player.x, y: level.player.y },
-    boxes,
-    hoveredBoxId: undefined,
-    gridWidth: level.info.gridWidth,
-    gridHeight: level.info.gridHeight,
-    cellSize: level.info.cellSize,
-    goals,
-    history: [],
-    isComplete: areGoalsSatisfied(boxes, goals),
-    backups: [],
-    activeBackupId: undefined,
-    nextBackupId: 0,
-    levelId: level.info.id,
-    levelName: level.info.name,
-  };
-}
-
-function areGoalsSatisfied(
-  boxes: Level["boxes"],
-  goals: Level["goals"]
-): boolean {
-  if (goals.length === 0) {
-    return true;
-  }
-  return goals.every((goal) => {
-    const match = boxes.find(
-      (box) => box.pos.x === goal.pos.x && box.pos.y === goal.pos.y
-    );
-    if (!match) {
-      return false;
-    }
-    return kind_to_string(match.kind) === kind_to_string(goal.prop);
   });
 }
 

@@ -1,18 +1,20 @@
+import { Kind, CoreModel as Model, ViewModel } from "./types";
+
 declare module "../singularity/target/js/release/build/cs.js" {
-  export function init_model(): unknown;
-  export function init_model_for(levelId: number): unknown;
-  export function move_with_key(model: unknown, key: string): unknown;
-  export function hover_box(model: unknown, boxId: number): unknown;
-  export function clear_hover(model: unknown): unknown;
-  export function undo(model: unknown): unknown;
-  export function save_backup(model: unknown, timestamp: number): unknown;
-  export function list_backups(model: unknown): any;
+  export function init_model(): Model;
+  export function init_model_for(levelId: number): Model;
+  export function move_with_key(model: Model, key: string): Model;
+  export function hover_box(model: Model, boxId: number): Model;
+  export function clear_hover(model: Model): Model;
+  export function undo(model: Model): Model;
+  export function save_backup(model: Model, timestamp: number): Model;
+  export function list_backups(model: Model): any;
   export function get_active_backup_meta(model: unknown): any;
-  export function restore_backup(model: unknown, backupId: number): unknown;
-  export function view(model: unknown): any;
-  export function generate_panel_content(model: unknown): string;
+  export function restore_backup(model: Model, backupId: number): Model;
+  export function view(model: Model): ViewModel;
+  export function generate_panel_content(model: Model): string;
   export function level_infos(): any;
-  export function style_for_kind(kind: unknown, cellSize: number): any;
+  export function style_for_kind(kind: Kind, cellSize: number): any;
   export function load_from_json(json: string): any;
   export function save_to_json(level: unknown): string;
   export function make_wall(id: number, x: number, y: number): any;

@@ -50,12 +50,12 @@ const STYLE_HOVERED : String = "font-weight: bold; color: #00FFFF;"
 pub fn kind_to_label(kind : Kind) -> String {
   match kind {
     Prop(label) => label
-    Implication(_, _) => "→".to_string()
-    And(_, _) => "∧".to_string()
-    Fst(_) => "π₁".to_string()
-    Snd(_) => "π₂".to_string()
-    Neg(_) => "¬".to_string()
-    Wall => "Wall".to_string()
+    Implication(_, _) => "→"
+    And(_, _) => "∧"
+    Fst(_) => "π₁"
+    Snd(_) => "π₂"
+    Neg(_) => "¬"
+    Wall => "Wall"
   }
 }
 

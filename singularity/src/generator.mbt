@@ -7,7 +7,7 @@ pub struct Move {
 } derive(@json.FromJson, ToJson)
 
 ///|
-impl Show for Move with output(self, f) {
+pub impl Show for Move with output(self, f) {
   f.write_string("Move \{self.index}: \{self.direction} (\{self.description})")
 }
 

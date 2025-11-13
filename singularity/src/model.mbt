@@ -111,20 +111,12 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
         if merged {
           let history = append_snapshot(self.history, self.player, self.boxes)
           {
+            ..self,
             player: nextPlayer,
             boxes: merged_boxes,
             hoveredBoxId: None,
-            gridWidth: self.gridWidth,
-            gridHeight: self.gridHeight,
-            cellSize: self.cellSize,
             history,
-            goals: self.goals,
             isComplete: goals_completed(merged_boxes, self.goals),
-            backups: self.backups,
-            activeBackupId: self.activeBackupId,
-            nextBackupId: self.nextBackupId,
-            levelId: self.levelId,
-            levelName: self.levelName,
           }
         } else {
           self
@@ -133,20 +125,12 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
         let history = append_snapshot(self.history, self.player, self.boxes)
         let moved_boxes = move_box_chain(self.boxes, chain, direction)
         {
+          ..self,
           player: nextPlayer,
           boxes: moved_boxes,
           hoveredBoxId: None,
-          gridWidth: self.gridWidth,
-          gridHeight: self.gridHeight,
-          cellSize: self.cellSize,
           history,
-          goals: self.goals,
           isComplete: goals_completed(moved_boxes, self.goals),
-          backups: self.backups,
-          activeBackupId: self.activeBackupId,
-          nextBackupId: self.nextBackupId,
-          levelId: self.levelId,
-          levelName: self.levelName,
         }
       }
     }

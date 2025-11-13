@@ -1,3 +1,6 @@
+export type CoreModel = "core-model-placeholder";
+export type Kind = "kind-placeholder";
+
 export interface Vector2 {
   x: number;
   y: number;
@@ -6,18 +9,10 @@ export interface Vector2 {
 export interface BoxView {
   id: number;
   pos: Vector2;
-  kind: BoxKind;
+  kind: Kind;
   label?: string | null;
   secondary?: string | null;
 }
-
-export type BoxKind =
-  | "wall"
-  | "prop"
-  | "implication"
-  | "and"
-  | "pi1"
-  | "pi2";
 
 export interface GoalView {
   pos: Vector2;
