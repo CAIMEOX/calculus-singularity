@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "cd singularity && moon build --target js && cd .. && vite",
     "build": "cd singularity && moon build --target js && cd .. && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "app": "npm run build && electron-builder --config electron-builder.json"
   },
   "devDependencies": {
     "chokidar": "^4.0.3",
+    "electron": "^39.1.2",
+    "electron-builder": "^26.0.12",
     "vite": "^5.0.0"
   },
   "dependencies": {
@@ -17,6 +20,7 @@
     "@pixi/filter-glow": "^5.2.1",
     "pixi.js": "^7.3.0"
   },
+  "main": "electron/index.js",
   "author": "CAIMEOX",
   "license": "MIT"
 }

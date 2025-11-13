@@ -1,0 +1,22 @@
+{
+  "appId": "com.caimeo.singularity",
+  "productName": "CalculusSingularity",
+  "directories": {
+    "output": "releases"
+  },
+  "files": ["dist/**/*", "electron/index.js", "package.json"],
+  "asar": true,
+
+  "mac": {
+    "icon": "electron/icon.png",
+    "target": { "target": "dmg" }
+  },
+  "win": {
+    "icon": "electron/icon.png",
+    "target": ["nsis"]
+  },
+  "linux": {
+    "icon": "electron/icon.png",
+    "target": ["AppImage"]
+  }
+}
