@@ -1,4 +1,9 @@
-import { Kind, CoreModel as Model, ViewModel } from "./types";
+import {
+  Kind,
+  CoreModel as Model,
+  ViewModel,
+  InfoPanelData,
+} from "./types";
 
 declare module "../singularity/target/js/release/build/cs.js" {
   export function init_model(): Model;
@@ -12,7 +17,7 @@ declare module "../singularity/target/js/release/build/cs.js" {
   export function get_active_backup_meta(model: unknown): any;
   export function restore_backup(model: Model, backupId: number): Model;
   export function view(model: Model): ViewModel;
-  export function generate_panel_content(model: Model): string;
+  export function generate_panel_content(model: Model): InfoPanelData;
   export function level_infos(): any;
   export function style_for_kind(kind: Kind, cellSize: number): any;
   export function load_from_json(json: string): any;

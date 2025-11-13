@@ -33,6 +33,25 @@ export interface ViewModel {
   levelName: string;
 }
 
+export type InfoLineTone = "normal" | "hovered" | "proved" | "unexpected";
+
+export interface InfoPanelLine {
+  text: string;
+  tone: InfoLineTone;
+}
+
+export interface InfoPanelStat {
+  label: string;
+  value: string;
+}
+
+export interface InfoPanelData {
+  title: string;
+  stats: InfoPanelStat[];
+  boxes: InfoPanelLine[];
+  goals: InfoPanelLine[];
+}
+
 export type Box = BoxView;
 
 export interface LevelInfo {

@@ -1,4 +1,4 @@
-import { ViewModel } from "./types";
+import { ViewModel, InfoPanelData, InfoPanelLine } from "./types";
 import { generate_panel_content } from "../singularity/target/js/release/build/cs.js";
 
 export interface InfoPanelElements {
@@ -52,5 +52,84 @@ export function updateInfoPanel(
   elements: InfoPanelElements,
   model: ViewModel
 ): void {
-  elements.content.innerHTML = generate_panel_content(model);
+  const panelData = generate_panel_content(model);
+  renderInfoPanel(elements.content, panelData);
+}
+
+function renderInfoPanel(container: HTMLElement, data: InfoPanelData): void {
+  container.replaceChildren();
+
+  const title = document.createElement("h3");
+  title.className = "info-panel__title";
+  title.textContent = data.title;
+  container.appendChild(title);
+
+  const divider = document.createElement("hr");
+  divider.className = "info-panel__divider";
+  container.appendChild(divider);
+
+  container.appendChild(renderStats(data));
+  container.appendChild(
+    renderLineSection("Boxes", data.boxes, "No boxes to show yet.")
+  );
+  container.appendChild(
+    renderLineSection("Goals", data.goals, "No goals defined.")
+  );
+}
+
+function renderStats(data: InfoPanelData): HTMLElement {
+  const wrapper = document.createElement("dl");
+  wrapper.className = "info-panel__stats";
+  data.stats.forEach((stat) => {
+    const row = document.createElement("div");
+    row.className = "info-panel__stat";
+
+    const dt = document.createElement("dt");
+    dt.className = "info-panel__stat-label";
+    dt.textContent = stat.label;
+
+    const dd = document.createElement("dd");
+    dd.className = "info-panel__stat-value";
+    dd.textContent = stat.value;
+
+    row.appendChild(dt);
+    row.appendChild(dd);
+    wrapper.appendChild(row);
+  });
+  return wrapper;
+}
+
+function renderLineSection(
+  title: string,
+  lines: InfoPanelLine[],
+  emptyLabel: string
+): HTMLElement {
+  const section = document.createElement("section");
+  section.className = "info-panel__section";
+
+  const header = document.createElement("h4");
+  header.className = "info-panel__section-title";
+  header.textContent = title;
+  section.appendChild(header);
+
+  if (!lines.length) {
+    const empty = document.createElement("p");
+    empty.className = "info-panel__empty";
+    empty.textContent = emptyLabel;
+    section.appendChild(empty);
+    return section;
+  }
+
+  const list = document.createElement("ul");
+  list.className = "info-panel__line-list";
+
+  lines.forEach((line) => {
+    const item = document.createElement("li");
+    item.className = `info-panel__line info-panel__line--${line.tone}`;
+    item.textContent = line.text;
+    list.appendChild(item);
+  });
+
+  section.appendChild(list);
+  return section;
 }

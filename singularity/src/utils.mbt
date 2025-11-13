@@ -26,7 +26,6 @@ pub impl Show for Kind with to_string(self) {
     Fst(None) => "π₁"
     Snd(Some(expr)) => "π₂(\{expr})"
     Snd(None) => "π₂"
-    Neg(Some(Neg(Some(x)))) => x.to_string()
     Neg(Some(Prop(label))) => "¬\{label}"
     Neg(None) => "¬"
     Neg(Some(inner)) => "¬(\{inner})"
@@ -44,7 +43,10 @@ pub impl Show for Box with output(self, f) {
 }
 
 ///|
-const STYLE_HOVERED : String = "font-weight: bold; color: #00FFFF;"
+const INFO_TONE_NORMAL : String = "normal"
+const INFO_TONE_HOVERED : String = "hovered"
+const INFO_TONE_PROVED : String = "proved"
+const INFO_TONE_UNEXPECTED : String = "unexpected"
 
 ///|
 pub fn kind_to_label(kind : Kind) -> String {
@@ -99,63 +101,76 @@ pub fn kind_to_string(kind : Kind) -> String {
 }
 
 ///|
-fn compose_hovered(s : String) -> String {
-  "<span style=\"\{STYLE_HOVERED}\">\{s}</span>"
-}
-
-///|
-fn compose_proved(s : String) -> String {
-  "<span style=\"font-weight: bold; color: #00FF00;\">\{s}</span>"
-}
-
-///|
-fn compose_unexpected(s : String) -> String {
-  "<span style=\"font-weight: bold; color: #FF0000;\">\{s}</span>"
-}
-
-///|
-fn render_goal(boxes : Array[Box], goal : GoalView) -> String {
+fn render_goal(boxes : Array[Box], goal : GoalView) -> InfoPanelLine {
+  let baseline = "⊢ \{goal.prop} @ (\{goal.pos.x}, \{goal.pos.y})"
   if goal.satisfied {
-    compose_proved("⊢ \{goal.prop} @ (\{goal.pos.x}, \{goal.pos.y})")
+    {
+      text: baseline,
+      tone: INFO_TONE_PROVED,
+    }
   } else {
     for b in boxes {
       if b.pos == goal.pos && b.kind != goal.prop {
-        break compose_unexpected(
-          "⊢ expected \{goal.prop} but got \{b.kind} @ (\{goal.pos.x}, \{goal.pos.y})",
-        )
+        break {
+          text: "⊢ expected \{goal.prop} but got \{b.kind} @ (\{goal.pos.x}, \{goal.pos.y})",
+          tone: INFO_TONE_UNEXPECTED,
+        }
       }
     } else {
-      "⊢ \{goal.prop} @ (\{goal.pos.x}, \{goal.pos.y})"
+      {
+        text: baseline,
+        tone: INFO_TONE_NORMAL,
+      }
     }
   }
 }
 
 ///|
-pub fn generate_panel_content(modelView : ViewModel) -> String {
-  let mut content = "<h3>INFO</h3><hr>"
-  content += "Level \{modelView.levelId}: \{modelView.levelName}<br>"
-  content += "Grid: \{modelView.gridWidth} x \{modelView.gridHeight}<br>"
-  let is_complete = if modelView.isComplete {
-    "Level Complete!"
-  } else {
-    "In Progress"
-  }
-  content += "Status: \{is_complete}<br>"
-  content += "Hint: \{get_description(modelView.levelId)}<br>"
-  content += "Goals:<br>"
+pub fn generate_panel_content(modelView : ViewModel) -> InfoPanelData {
+  let stats : Array[InfoPanelStat] = Array::new()
+  stats.push({
+    label: "Level",
+    value: "Level \{modelView.levelId}: \{modelView.levelName}",
+  })
+  stats.push({
+    label: "Grid",
+    value: "\{modelView.gridWidth} x \{modelView.gridHeight}",
+  })
+  stats.push({
+    label: "Status",
+    value: if modelView.isComplete {
+      "Level Complete!"
+    } else {
+      "In Progress"
+    },
+  })
+  stats.push({
+    label: "Hint",
+    value: get_description(modelView.levelId),
+  })
+
+  let boxes : Array[InfoPanelLine] = Array::new()
   for box in modelView.boxes {
     guard box.kind != Wall else { continue }
-    let temp = box.to_string() + "<br>"
-    content += if modelView.hoveredBoxId is Some(id) && box.id == id {
-      compose_hovered(temp)
+    let tone = if modelView.hoveredBoxId is Some(id) && box.id == id {
+      INFO_TONE_HOVERED
     } else {
-      temp
+      INFO_TONE_NORMAL
     }
+    boxes.push({ text: box.to_string(), tone })
   }
+
+  let goals : Array[InfoPanelLine] = Array::new()
   for goal in modelView.goals {
-    content += render_goal(modelView.boxes, goal) + "<br>"
+    goals.push(render_goal(modelView.boxes, goal))
   }
-  content
+
+  {
+    title: "INFO",
+    stats,
+    boxes,
+    goals,
+  }
 }
 
 ///|

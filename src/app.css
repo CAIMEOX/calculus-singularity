@@ -90,6 +90,101 @@ canvas {
   overflow-wrap: anywhere;
 }
 
+.info-panel__title {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.info-panel__divider {
+  border: none;
+  border-top: 1px solid #2a2a2a;
+  margin: 6px 0 10px 0;
+}
+
+.info-panel__stats {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-panel__stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.info-panel__stat-label {
+  font-weight: 600;
+  color: #f4f4f4;
+  margin: 0;
+}
+
+.info-panel__stat-value {
+  margin: 0;
+  color: #c4c4c4;
+  text-align: right;
+}
+
+.info-panel__section {
+  margin-top: 12px;
+}
+
+.info-panel__section-title {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #fefefe;
+}
+
+.info-panel__line-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-panel__line {
+  margin: 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #1f1f26;
+  background: #111417;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 13px;
+  color: #d9d9d9;
+}
+
+.info-panel__line--hovered {
+  border-color: #00ffff;
+  color: #00ffff;
+  font-weight: 600;
+}
+
+.info-panel__line--proved {
+  border-color: #4caf50;
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.info-panel__line--unexpected {
+  border-color: #ff4d4f;
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.info-panel__empty {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
 .info-panel__actions {
   display: flex;
   flex-direction: column;

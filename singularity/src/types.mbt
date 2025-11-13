@@ -80,6 +80,26 @@ pub struct GoalView {
 }
 
 ///|
+pub struct InfoPanelLine {
+  text : String
+  tone : String
+}
+
+///|
+pub struct InfoPanelStat {
+  label : String
+  value : String
+}
+
+///|
+pub struct InfoPanelData {
+  title : String
+  stats : Array[InfoPanelStat]
+  boxes : Array[InfoPanelLine]
+  goals : Array[InfoPanelLine]
+}
+
+///|
 pub struct BackupState {
   player : Vector
   boxes : Array[Box]
