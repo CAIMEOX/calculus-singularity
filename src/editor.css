@@ -111,6 +111,38 @@ body {
   gap: 12px;
 }
 
+.shortcut-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #d7d7d7;
+}
+
+.shortcut-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.shortcut-key {
+  display: inline-block;
+  min-width: 32px;
+  text-align: center;
+  background: #202028;
+  border: 1px solid #44444d;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: "Courier New", Courier, monospace;
+  color: #ffffff;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
 .toolbar-list {
   display: flex;
   flex-direction: column;

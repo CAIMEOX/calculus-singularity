@@ -16,6 +16,15 @@ export function createBackupPanel(): BackupPanelElements {
   panel.id = "backup-panel";
   panel.className = "backup-panel";
 
+  const hint_text = document.createElement("h3");
+  hint_text.textContent = "HINTS";
+  hint_text.className = "backup-panel__hints-title";
+
+  const hints = document.createElement("div");
+  hints.className = "backup-panel__hints-list";
+  const hintItems = ["Z for undo", "R for reset", "B for backup"];
+  hints.innerHTML = hintItems.join("<br>");
+
   const title = document.createElement("h3");
   title.textContent = "BACKUPS";
   title.className = "backup-panel__title";
@@ -23,6 +32,9 @@ export function createBackupPanel(): BackupPanelElements {
   const list = document.createElement("div");
   list.className = "backup-panel__list";
 
+  panel.appendChild(hint_text);
+  panel.appendChild(hints);
+  panel.appendChild(document.createElement("br"));
   panel.appendChild(title);
   panel.appendChild(list);
 
@@ -37,10 +49,6 @@ export function renderBackupPanel(
 ) {
   list.innerHTML = "";
   if (items.length === 0) {
-    const empty = document.createElement("div");
-    empty.textContent = "Press B to save.";
-    empty.className = "backup-panel__empty";
-    list.appendChild(empty);
     return;
   }
 

@@ -1,7 +1,6 @@
 ///|
 const DEFAULT_LEVEL_ID : Int = 1
 
-
 ///|
 fn build_level1() -> Level {
   let json : Json = {
@@ -358,6 +357,92 @@ fn build_level8() -> Level {
 }
 
 ///|
+fn build_level9() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 9,
+      "name": "Introduction Negation",
+      "description": "¬ box can be combined with other box.",
+      "gridWidth": 3,
+      "gridHeight": 4,
+      "cellSize": 48,
+    },
+    "player": { "x": 2, "y": 3 },
+    "boxes": [
+      { "id": 1, "pos": { "x": 1, "y": 1 }, "kind": ["Neg", null] },
+      { "id": 2, "pos": { "x": 0, "y": 2 }, "kind": ["Prop", "A"] },
+      { "id": 3, "pos": { "x": 2, "y": 2 }, "kind": ["Prop", "B"] },
+      { "id": 10, "pos": { "x": 1, "y": 0 }, "kind": "Wall" },
+      { "id": 11, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
+      { "id": 12, "pos": { "x": 2, "y": 1 }, "kind": ["Prop", "A"] },
+    ],
+    "goals": [{ "pos": { "x": 0, "y": 1 }, "prop": ["Neg", [["Prop", "A"]]] }],
+  }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
+fn build_level10() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 10,
+      "name": "Double Negation",
+      "description": "¬(¬A) is not equivalent to A",
+      "gridWidth": 6,
+      "gridHeight": 5,
+      "cellSize": 48,
+    },
+    "player": { "x": 0, "y": 2 },
+    "boxes": [
+      {
+        "id": 1,
+        "pos": { "x": 2, "y": 1 },
+        "kind": [
+          "Implication",
+          ["Prop", "P"],
+          ["Neg", [["And", ["Neg", [["Prop", "A"]]], ["Neg", [["Prop", "B"]]]]]],
+        ],
+      },
+      { "id": 2, "pos": { "x": 2, "y": 2 }, "kind": ["Neg", null] },
+      { "id": 5, "pos": { "x": 3, "y": 3 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 1, "y": 1 }, "kind": "Wall" },
+      { "id": 8, "pos": { "x": 1, "y": 2 }, "kind": ["Prop", "P"] },
+      {
+        "id": 10,
+        "pos": { "x": 4, "y": 3 },
+        "kind": [
+          "Implication",
+          [
+            "Neg",
+            [
+              [
+                "Neg",
+                [["And", ["Neg", [["Prop", "A"]]], ["Neg", [["Prop", "B"]]]]],
+              ],
+            ],
+          ],
+          ["Prop", "Q"],
+        ],
+      },
+      {
+        "id": 12,
+        "pos": { "x": 2, "y": 3 },
+        "kind": [
+          "Implication",
+          ["And", ["Neg", [["Prop", "A"]]], ["Neg", [["Prop", "B"]]]],
+          ["Prop", "Q"],
+        ],
+      },
+      { "id": 15, "pos": { "x": 0, "y": 4 }, "kind": "Wall" },
+      { "id": 23, "pos": { "x": 5, "y": 2 }, "kind": "Wall" },
+      { "id": 25, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
+    ],
+    "goals": [{ "pos": { "x": 4, "y": 1 }, "prop": ["Prop", "Q"] }],
+  }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
 pub let pool : Map[Int, Level] = level_pool()
 
 ///|
@@ -371,6 +456,8 @@ fn level_pool() -> Map[Int, Level] {
     6: build_level6(),
     7: build_level7(),
     8: build_level8(),
+    9: build_level9(),
+    10: build_level10(),
   }
 }
 

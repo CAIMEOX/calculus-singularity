@@ -83,6 +83,7 @@ pub struct GoalView {
 pub struct InfoPanelLine {
   text : String
   tone : String
+  kind : Kind?
 }
 
 ///|

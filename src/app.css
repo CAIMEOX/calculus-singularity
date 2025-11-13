@@ -162,21 +162,18 @@ canvas {
 }
 
 .info-panel__line--hovered {
-  border-color: #00ffff;
-  color: #00ffff;
   font-weight: 600;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
 }
 
 .info-panel__line--proved {
-  border-color: #4caf50;
-  color: #4caf50;
   font-weight: 600;
+  background: rgba(76, 175, 80, 0.08);
 }
 
 .info-panel__line--unexpected {
-  border-color: #ff4d4f;
-  color: #ff6b6b;
   font-weight: 600;
+  background: rgba(255, 77, 79, 0.08);
 }
 
 .info-panel__empty {

@@ -38,6 +38,7 @@ export type InfoLineTone = "normal" | "hovered" | "proved" | "unexpected";
 export interface InfoPanelLine {
   text: string;
   tone: InfoLineTone;
+  kind?: Kind | null;
 }
 
 export interface InfoPanelStat {

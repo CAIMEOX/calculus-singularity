@@ -107,6 +107,7 @@ fn render_goal(boxes : Array[Box], goal : GoalView) -> InfoPanelLine {
     {
       text: baseline,
       tone: INFO_TONE_PROVED,
+      kind: None,
     }
   } else {
     for b in boxes {
@@ -114,12 +115,14 @@ fn render_goal(boxes : Array[Box], goal : GoalView) -> InfoPanelLine {
         break {
           text: "⊢ expected \{goal.prop} but got \{b.kind} @ (\{goal.pos.x}, \{goal.pos.y})",
           tone: INFO_TONE_UNEXPECTED,
+          kind: None,
         }
       }
     } else {
       {
         text: baseline,
         tone: INFO_TONE_NORMAL,
+        kind: None,
       }
     }
   }
@@ -157,7 +160,7 @@ pub fn generate_panel_content(modelView : ViewModel) -> InfoPanelData {
     } else {
       INFO_TONE_NORMAL
     }
-    boxes.push({ text: box.to_string(), tone })
+    boxes.push({ text: box.to_string(), tone, kind: Some(box.kind) })
   }
 
   let goals : Array[InfoPanelLine] = Array::new()

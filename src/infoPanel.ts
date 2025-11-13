@@ -1,5 +1,12 @@
-import { ViewModel, InfoPanelData, InfoPanelLine } from "./types";
+import {
+  ViewModel,
+  InfoPanelData,
+  InfoPanelLine,
+  InfoLineTone,
+  Kind,
+} from "./types";
 import { generate_panel_content } from "../singularity/target/js/release/build/cs.js";
+import { styleForKind } from "./utils.js";
 
 export interface InfoPanelElements {
   panel: HTMLElement;
@@ -127,9 +134,54 @@ function renderLineSection(
     const item = document.createElement("li");
     item.className = `info-panel__line info-panel__line--${line.tone}`;
     item.textContent = line.text;
+    applyLineColors(item, line);
     list.appendChild(item);
   });
 
   section.appendChild(list);
   return section;
+}
+
+function applyLineColors(element: HTMLElement, line: InfoPanelLine) {
+  const { border, text } = resolveLineColors(line);
+  element.style.borderColor = border;
+  element.style.color = text;
+}
+
+function resolveLineColors(
+  line: InfoPanelLine
+): { border: string; text: string } {
+  if (line.tone === "hovered") {
+    return { border: "#ffffff", text: "#ffffff" };
+  }
+  const colorFromKind = kindBorderColor(line.kind);
+  if (colorFromKind) {
+    return { border: colorFromKind, text: colorFromKind };
+  }
+  return toneFallbackColor(line.tone);
+}
+
+function kindBorderColor(kind?: Kind | null): string | null {
+  if (!kind) {
+    return null;
+  }
+  const { borderColor } = styleForKind(kind);
+  return numberToCssHex(borderColor);
+}
+
+function toneFallbackColor(
+  tone: InfoLineTone
+): { border: string; text: string } {
+  switch (tone) {
+    case "proved":
+      return { border: "#4caf50", text: "#4caf50" };
+    case "unexpected":
+      return { border: "#ff4d4f", text: "#ff4d4f" };
+    default:
+      return { border: "#ffffff", text: "#ffffff" };
+  }
+}
+
+function numberToCssHex(value: number): string {
+  return `#${value.toString(16).padStart(6, "0")}`;
 }

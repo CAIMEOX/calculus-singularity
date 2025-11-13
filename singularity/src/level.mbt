@@ -340,4 +340,13 @@ test "parsing logical expressions" {
     ["Snd", [["And", ["Prop", "A"], ["Prop", "B"]]]],
     ["Neg", [["Prop", "C"]]],
   ])
+  let k5 = compose_kind("!(!(!A & !B)) -> Q")
+  @json.inspect(k5, content=[
+    "Implication",
+    [
+      "Neg",
+      [["Neg", [["And", ["Neg", [["Prop", "A"]]], ["Neg", [["Prop", "B"]]]]]]],
+    ],
+    ["Prop", "Q"],
+  ])
 }

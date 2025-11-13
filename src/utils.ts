@@ -21,8 +21,8 @@ export const COLORS = {
   PI1_BORDER: 0x3ab0ff,
   PI2_FILL: 0x0c3c7a,
   PI2_BORDER: 0x3ab0ff,
-  NEG_FILL: 0x701919,
-  NEG_BORDER: 0xff4d4d,
+  NEG_FILL: 0xFFC4C4,
+  NEG_BORDER: 0xEE6983,
 };
 
 export function styleForKind(kind: Kind): {

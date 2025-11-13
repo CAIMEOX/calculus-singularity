@@ -46,7 +46,6 @@ const TOOLBAR: ToolDefinition[] = [
   { id: "pi1", label: "π₁", description: "Eliminator π₁" },
   { id: "pi2", label: "π₂", description: "Eliminator π₂" },
   { id: "neg", label: "¬", description: "否定块" },
-  { id: "erase", label: "删除", description: "清除该格的内容" },
 ];
 
 const root = document.getElementById("editor-root");
@@ -176,7 +175,7 @@ function createEmptyLevel(): Level {
     info: {
       id: 1000,
       name: "新关卡",
-      description: "在此输入关卡描述 / 提示",
+      description: "",
       gridWidth: 6,
       gridHeight: 6,
       cellSize: 48,
@@ -670,6 +669,48 @@ function renderToolbar() {
   toolbarContainer.appendChild(panel);
 }
 
+function renderShortcutPanel() {
+  const panel = document.createElement("div");
+  panel.className = "editor-panel";
+  const title = document.createElement("h2");
+  title.textContent = "快捷提示";
+  panel.appendChild(title);
+
+  const list = document.createElement("ul");
+  list.className = "shortcut-list";
+
+  const hints: Array<{ key?: string; text: string }> = [
+    { key: "W", text: "可以制造墙壁" },
+    { key: "D", text: "快捷删除" },
+    { key: "Z", text: "撤销上一次编辑" },
+    {
+      text: "双击 Box 可以编辑 Kind，使用经典的逻辑符号，例如 A & B, !A, A -> B, fst A, snd B",
+    },
+  ];
+
+  hints.forEach((hint) => {
+    const item = document.createElement("li");
+    if (hint.key) {
+      const prefix = document.createElement("span");
+      prefix.textContent = "按下 ";
+      const key = document.createElement("kbd");
+      key.className = "shortcut-key";
+      key.textContent = hint.key;
+      const suffix = document.createElement("span");
+      suffix.textContent = ` ${hint.text}`;
+      item.appendChild(prefix);
+      item.appendChild(key);
+      item.appendChild(suffix);
+    } else {
+      item.textContent = hint.text;
+    }
+    list.appendChild(item);
+  });
+
+  panel.appendChild(list);
+  return panel;
+}
+
 function renderStructurePanel() {
   const panel = document.createElement("div");
   panel.className = "editor-panel";
@@ -685,12 +726,8 @@ function renderStructurePanel() {
     [
       { label: "左侧插入列", handler: () => insertColumnRelative("left") },
       { label: "右侧插入列", handler: () => insertColumnRelative("right") },
-    ],
-    [
       { label: "上方插入行", handler: () => insertRowRelative("up") },
       { label: "下方插入行", handler: () => insertRowRelative("down") },
-    ],
-    [
       { label: "删除选中行", handler: deleteSelectedRow, tone: "secondary" },
       { label: "删除选中列", handler: deleteSelectedColumn, tone: "secondary" },
     ],
@@ -727,6 +764,7 @@ function renderMetadataPanel() {
   const infoFields: { label: string; key: keyof LevelInfo }[] = [
     { label: "ID", key: "id" },
     { label: "名称", key: "name" },
+    { label: "描述", key: "description" },
     { label: "宽度", key: "gridWidth" },
     { label: "高度", key: "gridHeight" },
     { label: "Cell Size", key: "cellSize" },
@@ -767,7 +805,7 @@ function renderMetadataPanel() {
     level.info = {
       id: Number(metadataInputs.id?.value) || level.info.id,
       name: metadataInputs.name?.value || level.info.name,
-      description: level.info.description || "",
+      description: metadataInputs.description?.value || level.info.description,
       gridWidth: Math.max(
         1,
         Number(metadataInputs.gridWidth?.value) || level.info.gridWidth
@@ -877,6 +915,9 @@ function syncMetadataInputs() {
   }
   if (metadataInputs.cellSize) {
     metadataInputs.cellSize.value = String(level.info.cellSize);
+  }
+  if (metadataInputs.description) {
+    metadataInputs.description.value = level.info.description;
   }
 }
 
@@ -1352,10 +1393,12 @@ function init() {
   left.className = "editor-left";
   const metadataPanel = renderMetadataPanel();
   const structurePanel = renderStructurePanel();
+  const shortcutPanel = renderShortcutPanel();
   const ioPanel = renderIoPanel();
   left.appendChild(metadataPanel);
   left.appendChild(structurePanel);
   left.appendChild(gridContainer);
+  left.appendChild(shortcutPanel);
   left.appendChild(ioPanel);
   left.appendChild(statusLine);
 
