@@ -2,31 +2,10 @@
 const DEFAULT_LEVEL_ID : Int = 1
 
 ///|
-const GRID : Int = 0x444444
-
-///|
-const PLAYER_FILL : Int = 0x222233
-
-///|
-const PLAYER_BORDER : Int = 0x00ffff
-
-///|
-const BOX_FILL : Int = 0x332222
-
-///|
-const BOX_BORDER : Int = 0xffa500
-
-///|
 const WALL_FILL : Int = 0x2c2c2c
 
 ///|
 const WALL_BORDER : Int = 0x0f0f0f
-
-///|
-const GOAL : Int = 0x2ef5a0
-
-///|
-const GOAL_COMPLETE : Int = 0xf5d142
 
 ///|
 const PROP_FILL : Int = 0x1f8a70
@@ -448,9 +427,4 @@ pub fn level_seed(levelId : Int) -> Level? {
 ///|
 pub fn level_infos() -> Array[LevelInfo] {
   pool.iter().map(ilvl => ilvl.1.info).collect()
-}
-
-///|
-pub fn default_level_id() -> Int {
-  DEFAULT_LEVEL_ID
 }

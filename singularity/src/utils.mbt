@@ -159,6 +159,21 @@ pub fn generate_panel_content(modelView : ViewModel) -> String {
 }
 
 ///|
+fn calculate_next_position(pos : Vector, direction : Direction) -> Vector {
+  match direction {
+    Up => { x: pos.x, y: pos.y - 1 }
+    Down => { x: pos.x, y: pos.y + 1 }
+    Left => { x: pos.x - 1, y: pos.y }
+    Right => { x: pos.x + 1, y: pos.y }
+  }
+}
+
+///|
+fn is_in_bounds(pos : Vector, width : Int, height : Int) -> Bool {
+  pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height
+}
+
+///|
 pub(all) struct Style {
   size : Int
   borderWidth : Float

@@ -11,6 +11,29 @@ body {
   box-sizing: border-box;
 }
 
+.github-link {
+  position: fixed;
+  top: 18px;
+  right: 24px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #2f2f36;
+  background: rgba(20, 20, 28, 0.85);
+  color: #f2f2f7;
+  font-size: 13px;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.github-link:hover {
+  border-color: #3f8cff;
+  color: #8ecbff;
+}
+
 canvas {
   background-color: #222;
   display: block;
