@@ -6,7 +6,7 @@
   },
   "files": ["dist/**/*", "electron/index.js", "package.json"],
   "asar": true,
-
+  "publish": null,
   "mac": {
     "icon": "electron/icon.png",
     "target": { "target": "dmg" }
