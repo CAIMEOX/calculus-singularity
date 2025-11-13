@@ -1,4 +1,4 @@
-name: Build macOS DMG
+name: Build Linux AppImage
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  build-linux:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
@@ -35,23 +35,24 @@ jobs:
       - name: Build JS (Moon + Vite)
         run: npm run build
 
-      - name: Build DMG
-        run: npm run app
+      - name: Build AppImage
+        run: |
+          npx electron-builder --linux AppImage --config electron-builder.json
 
-      - name: Upload DMG as artifact
+      - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mac-dmg
-          path: releases/*.dmg
+          name: linux-appimage
+          path: releases/*.AppImage
 
       - name: Generate Version
         id: version
         run: echo "version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Release DMG
+      - name: Release AppImage
         uses: softprops/action-gh-release@v2
         with:
-          files: releases/*.dmg
+          files: releases/*.AppImage
           tag_name: ${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
