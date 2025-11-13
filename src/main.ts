@@ -7,6 +7,7 @@ import {
 } from "./infoPanel";
 import { Vector2, ViewModel, LevelInfo, Level, CoreModel, Kind } from "./types";
 import { createBackupPanel, renderBackupPanel } from "./backupPanel";
+import { createMobileControls } from "./mobileControls";
 import {
   init_model,
   init_model_for,
@@ -268,6 +269,7 @@ function applyCanvasSize(
 function mount(app: PIXI.Application): {
   infoPanel: InfoPanelElements;
   backupList: HTMLElement;
+  stageWrapper: HTMLElement;
 } {
   const container = document.getElementById("game-container")!;
   container.classList.add("game-container");
@@ -283,7 +285,7 @@ function mount(app: PIXI.Application): {
   const infoPanel = createInfoPanel();
   container.appendChild(infoPanel.panel);
 
-  return { infoPanel, backupList };
+  return { infoPanel, backupList, stageWrapper };
 }
 
 function main() {
@@ -313,7 +315,7 @@ function main() {
     rendererDims.gridHeight,
     rendererDims.cellSize
   );
-  const { infoPanel, backupList } = mount(app);
+  const { infoPanel, backupList, stageWrapper } = mount(app);
   let ctx = createRenderer(app, viewModel);
   let pendingNextLevelId: number | null = null;
 
@@ -454,31 +456,44 @@ function main() {
     return true;
   };
 
-  window.addEventListener("keydown", (e) => {
-    if (handleLevelHotkey(e.key)) {
-      e.preventDefault();
-      return;
+  const handleGameKey = (key: string) => {
+    if (handleLevelHotkey(key)) {
+      return true;
     }
-    if (e.key === "z" || e.key === "Z") {
+    const normalized = key.toLowerCase();
+    if (normalized === "z") {
       const next = undo(coreModel);
       if (next !== coreModel) {
         coreModel = next;
         render();
       }
-      return;
+      return true;
     }
-    if (e.key === "r" || e.key === "R") {
+    if (normalized === "r") {
       loadLevel(viewModel.levelId);
-      return;
+      return true;
     }
-    if (e.key === "b" || e.key === "B") {
+    if (normalized === "b") {
       saveBackup();
-      return;
+      return true;
     }
-    const next = move_with_key(coreModel, e.key);
+    const next = move_with_key(coreModel, key);
     if (next !== coreModel) {
       coreModel = next;
       render();
+      return true;
+    }
+    return false;
+  };
+
+  createMobileControls({
+    mountPoint: stageWrapper,
+    onKeyPress: handleGameKey,
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (handleGameKey(e.key)) {
+      e.preventDefault();
     }
   });
 

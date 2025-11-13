@@ -44,22 +44,27 @@ canvas {
 .game-container {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   gap: 24px;
   width: min(1200px, 100%);
 }
 
 .stage-wrapper {
-  flex: 1;
-  min-width: 560px;
-  min-height: 560px;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 720px;
+  min-width: 0;
+  min-height: 520px;
   padding: 24px;
   background: #111115;
   border: 1px solid #1f1f24;
   border-radius: 12px;
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 16px;
 }
 
 .info-panel {
@@ -248,4 +253,142 @@ canvas {
   background: #3f8cff;
   border-color: #3f8cff;
   color: #050506;
+}
+
+.mobile-controls {
+  display: none;
+  width: min(100%, 480px);
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #25252a;
+  background: rgba(8, 8, 12, 0.9);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.45);
+  color: #e8e8f2;
+  align-self: center;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-controls__label {
+  width: 100%;
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.mobile-controls__body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.mobile-controls__dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  grid-template-rows: repeat(3, 54px);
+  gap: 8px;
+}
+
+.mobile-controls__dpad-button {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  border: 1px solid #36363f;
+  background: #1a1a22;
+  color: #e4e4f5;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.mobile-controls__dpad-button--up {
+  grid-column: 2 / 3;
+}
+
+.mobile-controls__dpad-button--left {
+  grid-row: 2 / 3;
+  grid-column: 1 / 2;
+}
+
+.mobile-controls__dpad-button--right {
+  grid-row: 2 / 3;
+  grid-column: 3 / 4;
+}
+
+.mobile-controls__dpad-button--down {
+  grid-column: 2 / 3;
+  grid-row: 3 / 4;
+}
+
+.mobile-controls__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-controls__action-button {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid #41414b;
+  background: radial-gradient(circle at 30% 30%, #4f7dff, #3240ff);
+  color: #050506;
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.45);
+}
+
+.mobile-controls button:active {
+  transform: translateY(1px);
+}
+
+body.mobile-landscape {
+  padding: 16px 12px 28px;
+  align-items: center;
+}
+
+body.mobile-landscape .game-container {
+  display: grid;
+  width: 100%;
+  max-width: 1200px;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) minmax(180px, 260px);
+  gap: 12px;
+  align-items: start;
+  justify-items: center;
+}
+
+body.mobile-landscape .stage-wrapper {
+  grid-column: 2;
+  width: 100%;
+  max-width: 640px;
+  min-height: auto;
+  padding: 12px;
+}
+
+body.mobile-landscape .stage-wrapper canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
+body.mobile-landscape .backup-panel,
+body.mobile-landscape .info-panel {
+  position: static;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+body.mobile-landscape .backup-panel {
+  grid-column: 1;
+  justify-self: stretch;
+}
+
+body.mobile-landscape .info-panel {
+  grid-column: 3;
+  justify-self: stretch;
 }
