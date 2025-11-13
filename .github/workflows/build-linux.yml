@@ -3,7 +3,7 @@ name: Build Linux AppImage
 on:
   push:
     branches:
-      - main
+      - main-tmp-disable
   workflow_dispatch:
 
 jobs:

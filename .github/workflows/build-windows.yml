@@ -1,0 +1,58 @@
+name: Build Windows
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Moon
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "C:\Users\runneradmin\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Check Moon version
+        shell: pwsh
+        run: |
+          moon version --all
+          moonrun --version
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          Remove-Item package-lock.json -Force -ErrorAction Ignore
+          Remove-Item node_modules -Recurse -Force -ErrorAction Ignore
+          npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Build Windows EXE
+        run: npm run app
+
+      - name: Generate Version
+        id: version
+        run: echo "version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Release Exe
+        uses: softprops/action-gh-release@v2
+        with:
+          files: releases/*.exe
+          tag_name: ${{ steps.version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
