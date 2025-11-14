@@ -443,6 +443,119 @@ fn build_level10() -> Level {
 }
 
 ///|
+fn build_level11() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 11,
+      "name": "Multi Goals",
+      "description": "One more grid",
+      "gridWidth": 6,
+      "gridHeight": 7,
+      "cellSize": 48,
+    },
+    "player": { "x": 3, "y": 3 },
+    "boxes": [
+      { "id": 1, "pos": { "x": 5, "y": 2 }, "kind": "Wall" },
+      { "id": 2, "pos": { "x": 5, "y": 3 }, "kind": "Wall" },
+      { "id": 3, "pos": { "x": 5, "y": 4 }, "kind": "Wall" },
+      { "id": 4, "pos": { "x": 5, "y": 5 }, "kind": "Wall" },
+      { "id": 5, "pos": { "x": 4, "y": 5 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 3, "y": 5 }, "kind": "Wall" },
+      { "id": 7, "pos": { "x": 3, "y": 6 }, "kind": "Wall" },
+      { "id": 8, "pos": { "x": 2, "y": 6 }, "kind": "Wall" },
+      { "id": 9, "pos": { "x": 1, "y": 6 }, "kind": "Wall" },
+      { "id": 10, "pos": { "x": 0, "y": 6 }, "kind": "Wall" },
+      { "id": 13, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
+      { "id": 14, "pos": { "x": 0, "y": 2 }, "kind": "Wall" },
+      { "id": 15, "pos": { "x": 4, "y": 2 }, "kind": "Wall" },
+      { "id": 16, "pos": { "x": 3, "y": 2 }, "kind": "Wall" },
+      { "id": 17, "pos": { "x": 3, "y": 1 }, "kind": "Wall" },
+      { "id": 18, "pos": { "x": 3, "y": 0 }, "kind": "Wall" },
+      { "id": 19, "pos": { "x": 2, "y": 0 }, "kind": "Wall" },
+      { "id": 20, "pos": { "x": 1, "y": 0 }, "kind": "Wall" },
+      { "id": 21, "pos": { "x": 0, "y": 0 }, "kind": "Wall" },
+      { "id": 23, "pos": { "x": 3, "y": 4 }, "kind": ["Prop", "P"] },
+      { "id": 24, "pos": { "x": 1, "y": 2 }, "kind": ["Prop", "Q"] },
+      { "id": 26, "pos": { "x": 0, "y": 4 }, "kind": "Wall" },
+      {
+        "id": 28,
+        "pos": { "x": 1, "y": 1 },
+        "kind": ["Implication", ["Prop", "Q"], ["Prop", "P"]],
+      },
+      {
+        "id": 30,
+        "pos": { "x": 0, "y": 1 },
+        "kind": ["Implication", ["Prop", "P"], ["Prop", "Q"]],
+      },
+      { "id": 31, "pos": { "x": 0, "y": 5 }, "kind": "Wall" },
+    ],
+    "goals": [
+      { "pos": { "x": 2, "y": 1 }, "prop": ["Prop", "P"] },
+      { "pos": { "x": 1, "y": 3 }, "prop": ["Prop", "Q"] },
+    ],
+  }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
+fn build_level12() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 12,
+      "name": "Heart",
+      "description": "Around the corner",
+      "gridWidth": 8,
+      "gridHeight": 8,
+      "cellSize": 48,
+    },
+    "player": { "x": 4, "y": 1 },
+    "boxes": [
+      { "id": 1, "pos": { "x": 4, "y": 0 }, "kind": "Wall" },
+      { "id": 2, "pos": { "x": 5, "y": 0 }, "kind": "Wall" },
+      { "id": 3, "pos": { "x": 3, "y": 0 }, "kind": "Wall" },
+      { "id": 4, "pos": { "x": 3, "y": 1 }, "kind": "Wall" },
+      { "id": 5, "pos": { "x": 3, "y": 2 }, "kind": "Wall" },
+      { "id": 6, "pos": { "x": 3, "y": 3 }, "kind": "Wall" },
+      { "id": 7, "pos": { "x": 4, "y": 3 }, "kind": "Wall" },
+      { "id": 8, "pos": { "x": 6, "y": 0 }, "kind": "Wall" },
+      { "id": 10, "pos": { "x": 7, "y": 1 }, "kind": "Wall" },
+      { "id": 11, "pos": { "x": 7, "y": 2 }, "kind": "Wall" },
+      { "id": 12, "pos": { "x": 7, "y": 3 }, "kind": "Wall" },
+      { "id": 13, "pos": { "x": 7, "y": 4 }, "kind": "Wall" },
+      { "id": 14, "pos": { "x": 4, "y": 4 }, "kind": "Wall" },
+      { "id": 15, "pos": { "x": 3, "y": 4 }, "kind": "Wall" },
+      { "id": 16, "pos": { "x": 2, "y": 3 }, "kind": "Wall" },
+      { "id": 17, "pos": { "x": 1, "y": 3 }, "kind": "Wall" },
+      { "id": 18, "pos": { "x": 0, "y": 4 }, "kind": "Wall" },
+      { "id": 19, "pos": { "x": 0, "y": 5 }, "kind": "Wall" },
+      { "id": 20, "pos": { "x": 0, "y": 6 }, "kind": "Wall" },
+      { "id": 21, "pos": { "x": 1, "y": 7 }, "kind": "Wall" },
+      { "id": 22, "pos": { "x": 2, "y": 7 }, "kind": "Wall" },
+      { "id": 23, "pos": { "x": 3, "y": 7 }, "kind": "Wall" },
+      { "id": 24, "pos": { "x": 4, "y": 7 }, "kind": "Wall" },
+      { "id": 25, "pos": { "x": 5, "y": 7 }, "kind": "Wall" },
+      { "id": 26, "pos": { "x": 6, "y": 7 }, "kind": "Wall" },
+      { "id": 27, "pos": { "x": 7, "y": 7 }, "kind": "Wall" },
+      { "id": 28, "pos": { "x": 7, "y": 6 }, "kind": "Wall" },
+      { "id": 30, "pos": { "x": 7, "y": 5 }, "kind": "Wall" },
+      { "id": 31, "pos": { "x": 5, "y": 2 }, "kind": ["Prop", "X"] },
+      { "id": 32, "pos": { "x": 2, "y": 5 }, "kind": ["Prop", "Y"] },
+      { "id": 33, "pos": { "x": 5, "y": 5 }, "kind": ["Prop", "X"] },
+      { "id": 34, "pos": { "x": 5, "y": 6 }, "kind": ["Fst", null] },
+      { "id": 35, "pos": { "x": 6, "y": 6 }, "kind": ["Prop", "X"] },
+      { "id": 36, "pos": { "x": 0, "y": 3 }, "kind": "Wall" },
+      { "id": 37, "pos": { "x": 0, "y": 7 }, "kind": "Wall" },
+      { "id": 38, "pos": { "x": 7, "y": 0 }, "kind": "Wall" },
+    ],
+    "goals": [
+      { "pos": { "x": 2, "y": 6 }, "prop": ["Prop", "X"] },
+      { "pos": { "x": 3, "y": 6 }, "prop": ["Prop", "Y"] },
+    ],
+  }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
 pub let pool : Map[Int, Level] = level_pool()
 
 ///|
@@ -458,6 +571,8 @@ fn level_pool() -> Map[Int, Level] {
     8: build_level8(),
     9: build_level9(),
     10: build_level10(),
+    11: build_level11(),
+    12: build_level12(),
   }
 }
 

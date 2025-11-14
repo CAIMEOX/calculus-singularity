@@ -42,6 +42,8 @@ let backgroundMusic: HTMLAudioElement | null = null;
 
 const thumbnailStore = new Map<number, string>();
 const placeholderThumbnail = createPlaceholderThumbnail();
+const COMPLETED_LEVELS_KEY = "cs_completed_levels";
+const completedLevels = loadCompletedLevels();
 
 interface HoverHandlers {
   hover: (boxId: number) => void;
@@ -332,12 +334,15 @@ function main() {
     needsStageRebuild = false;
   };
 
-  const updateNextLevelControl = (view: ViewModel) => {
+  const updateNextLevelControl = (
+    view: ViewModel,
+    canAdvanceToNextLevel: boolean
+  ) => {
     const levelIndex = levelCatalog.findIndex(
       (level) => level.id === view.levelId
     );
     const hasNext =
-      view.isComplete &&
+      canAdvanceToNextLevel &&
       levelIndex >= 0 &&
       levelIndex < levelCatalog.length - 1;
     if (!hasNext) {
@@ -355,10 +360,15 @@ function main() {
 
   const render = () => {
     viewModel = moonView(coreModel);
+    const alreadyComplete = levelHasCachedCompletion(viewModel.levelId);
+    if (viewModel.isComplete && !alreadyComplete) {
+      markLevelCompleted(viewModel.levelId);
+    }
+    const levelComplete = viewModel.isComplete || alreadyComplete;
     resizeIfNeeded(viewModel);
     renderScene(ctx, viewModel, handlers);
     updateInfoPanel(infoPanel, viewModel);
-    updateNextLevelControl(viewModel);
+    updateNextLevelControl(viewModel, levelComplete);
   };
 
   const getBackupMetas = () => (list_backups(coreModel) ?? []) as BackupMeta[];
@@ -605,4 +615,50 @@ function createPlaceholderThumbnail(): string {
     ctx.fillRect(8, canvas.height - 12, canvas.width - 16, 4);
   }
   return canvas.toDataURL("image/png");
+}
+
+function loadCompletedLevels(): Set<number> {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return new Set();
+  }
+  try {
+    const raw = window.localStorage.getItem(COMPLETED_LEVELS_KEY);
+    if (!raw) {
+      return new Set();
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return new Set();
+    }
+    const validIds = parsed
+      .map((value) => Number(value))
+      .filter((value) => Number.isInteger(value) && value > 0);
+    return new Set(validIds);
+  } catch {
+    return new Set();
+  }
+}
+
+function persistCompletedLevels(levels: Set<number>): void {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+  try {
+    const sorted = Array.from(levels).sort((a, b) => a - b);
+    window.localStorage.setItem(COMPLETED_LEVELS_KEY, JSON.stringify(sorted));
+  } catch {
+    // Ignore persistence errors (e.g., storage denied).
+  }
+}
+
+function markLevelCompleted(levelId: number): void {
+  if (completedLevels.has(levelId)) {
+    return;
+  }
+  completedLevels.add(levelId);
+  persistCompletedLevels(completedLevels);
+}
+
+function levelHasCachedCompletion(levelId: number): boolean {
+  return completedLevels.has(levelId);
 }
