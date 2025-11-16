@@ -36,6 +36,9 @@ pub struct Model {
   cellSize : Int
   goals : Array[Goal]
   history : Array[Snapshot]
+  moveLog : Array[Direction]
+  initialPlayer : Vector
+  initialBoxes : Array[Box]
   isComplete : Bool
   backups : Array[BackupNode]
   activeBackupId : Int?
@@ -64,6 +67,14 @@ pub struct ViewModel {
   isComplete : Bool
   levelId : Int
   levelName : String
+}
+
+///|
+/// Timeline data for playback mode
+pub struct PlaybackTimeline {
+  moves : Array[Direction]
+  frames : Array[ViewModel]
+  snapshots : Array[Snapshot]
 }
 
 ///|
@@ -106,6 +117,9 @@ pub struct BackupState {
   boxes : Array[Box]
   hoveredBoxId : Int?
   history : Array[Snapshot]
+  moveLog : Array[Direction]
+  initialPlayer : Vector
+  initialBoxes : Array[Box]
 }
 
 ///|
@@ -132,4 +146,4 @@ enum Direction {
   Down
   Left
   Right
-}
+} derive(Eq, @json.FromJson, ToJson)

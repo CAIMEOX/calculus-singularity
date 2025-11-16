@@ -25,14 +25,71 @@ import {
   load_from_json,
   build_model,
   enpool_level,
+  export_moves,
+  build_playback_timeline,
+  playback_frame,
 } from "../singularity/target/js/release/build/cs.js";
 import { COLORS, styleForKind } from "./utils.js";
+
+function unwrapResult<T>(result: any, label: string): T {
+  if (!result || typeof result !== "object") {
+    throw new Error(`${label} returned no data`);
+  }
+  if ("$tag" in result) {
+    if (result.$tag === 1 && "_0" in result) {
+      return result._0 as T;
+    }
+    if (result.$tag === 0 && "_0" in result) {
+      throw result._0 ?? new Error(`${label} failed`);
+    }
+  }
+  return result as T;
+}
+
+function showToast(message: string) {
+  let container = document.querySelector<HTMLElement>(".toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  container.appendChild(toast);
+  window.setTimeout(() => toast.remove(), 3000);
+}
 
 interface BackupMeta {
   id: number;
   parentId: number | null;
   childIds: number[];
   timestamp: number;
+}
+
+type MoveStep = "move-step-placeholder"
+
+interface PlaybackTimeline {
+  moves: MoveStep[];
+  frames: ViewModel[];
+  snapshots?: { player: Vector2; boxes: any[] }[];
+}
+
+interface PlaybackState {
+  timeline: PlaybackTimeline | null;
+  currentFrame: number;
+  playing: boolean;
+  timer: number | null;
+}
+
+interface PlaybackControls {
+  container: HTMLElement;
+  loadButton: HTMLButtonElement;
+  exportButton: HTMLButtonElement;
+  playPauseButton: HTMLButtonElement;
+  clearButton: HTMLButtonElement;
+  progress: HTMLInputElement;
+  label: HTMLElement;
 }
 
 const BACKGROUND_MUSIC_SRC = new URL("./assets/ah.mp3", import.meta.url).href;
@@ -288,6 +345,77 @@ function createNavigationBar(githubUrl: string): NavigationBar {
   return { element: nav, loadJsonButton, openLevelEditorButton, closeMenu };
 }
 
+function createPlaybackControls(): PlaybackControls {
+  const container = document.createElement("div");
+  container.className = "playback-controls";
+
+  const header = document.createElement("div");
+  header.className = "playback-controls__header";
+  const title = document.createElement("span");
+  title.textContent = "Playback";
+  title.className = "playback-controls__title";
+
+  const actions = document.createElement("div");
+  actions.className = "playback-controls__actions";
+  const loadButton = document.createElement("button");
+  loadButton.type = "button";
+  loadButton.textContent = "Load Steps";
+  loadButton.className = "playback-controls__button";
+  const exportButton = document.createElement("button");
+  exportButton.type = "button";
+  exportButton.textContent = "Export Steps";
+  exportButton.className = "playback-controls__button";
+  actions.appendChild(loadButton);
+  actions.appendChild(exportButton);
+
+  header.appendChild(title);
+  header.appendChild(actions);
+
+  const progressRow = document.createElement("div");
+  progressRow.className = "playback-controls__progress";
+  const playPauseButton = document.createElement("button");
+  playPauseButton.type = "button";
+  playPauseButton.textContent = "Play";
+  playPauseButton.className = "playback-controls__button playback-controls__button--primary";
+
+  const progress = document.createElement("input");
+  progress.type = "range";
+  progress.min = "0";
+  progress.max = "0";
+  progress.value = "0";
+  progress.step = "1";
+  progress.className = "playback-controls__slider";
+  progress.disabled = true;
+
+  const label = document.createElement("span");
+  label.className = "playback-controls__label";
+  label.textContent = "Frame 0 / 0";
+
+  const clearButton = document.createElement("button");
+  clearButton.type = "button";
+  clearButton.textContent = "Exit";
+  clearButton.className = "playback-controls__button";
+  clearButton.disabled = true;
+
+  progressRow.appendChild(playPauseButton);
+  progressRow.appendChild(progress);
+  progressRow.appendChild(label);
+  progressRow.appendChild(clearButton);
+
+  container.appendChild(header);
+  container.appendChild(progressRow);
+
+  return {
+    container,
+    loadButton,
+    exportButton,
+    playPauseButton,
+    clearButton,
+    progress,
+    label,
+  };
+}
+
 // Kick background music off once the browser allows audio playback.
 function setupBackgroundMusic() {
   if (backgroundMusic) {
@@ -404,8 +532,16 @@ function main() {
     rendererDims.cellSize
   );
   const { infoPanel, backupList, stageWrapper } = mount(app, container);
+  const playbackControls = createPlaybackControls();
+  stageWrapper.appendChild(playbackControls.container);
   let ctx = createRenderer(app, viewModel);
   let pendingNextLevelId: number | null = null;
+  const playbackState: PlaybackState = {
+    timeline: null,
+    currentFrame: 0,
+    playing: false,
+    timer: null,
+  };
 
   const handlers: HoverHandlers = {
     hover: (boxId) => {
@@ -416,6 +552,100 @@ function main() {
       coreModel = clear_hover(coreModel);
       render();
     },
+  };
+
+  const passiveHandlers: HoverHandlers = {
+    hover: () => {},
+    leave: () => {},
+  };
+
+  const isPlaybackActive = () => playbackState.timeline !== null;
+
+  const safePlaybackFrame = (index: number): ViewModel | null => {
+    if (!playbackState.timeline) {
+      return null;
+    }
+    try {
+      const frameResult = playback_frame(playbackState.timeline, index);
+      return unwrapResult<ViewModel>(frameResult, "playback_frame");
+    } catch (error) {
+      console.error("Failed to read playback frame", error);
+      return null;
+    }
+  };
+
+  const stopPlayback = () => {
+    if (playbackState.timer !== null) {
+      window.clearInterval(playbackState.timer);
+      playbackState.timer = null;
+    }
+    playbackState.playing = false;
+  };
+
+  const updatePlaybackControlsUI = () => {
+    const timeline = playbackState.timeline;
+    const totalFrames = timeline ? Math.max(0, timeline.frames.length - 1) : 0;
+    playbackControls.progress.disabled = !timeline;
+    playbackControls.playPauseButton.disabled = !timeline;
+    playbackControls.clearButton.disabled = !timeline;
+    playbackControls.progress.max = String(totalFrames);
+    playbackControls.progress.value = String(
+      timeline ? playbackState.currentFrame : 0
+    );
+    playbackControls.playPauseButton.textContent = playbackState.playing
+      ? "Pause"
+      : "Play";
+    playbackControls.label.textContent = timeline
+      ? `Frame ${playbackState.currentFrame} / ${totalFrames}`
+      : "Playback idle";
+  };
+
+  const clearPlaybackTimeline = () => {
+    stopPlayback();
+    playbackState.timeline = null;
+    playbackState.currentFrame = 0;
+    updatePlaybackControlsUI();
+  };
+
+  const setPlaybackFrame = (index: number) => {
+    if (!playbackState.timeline) {
+      return;
+    }
+    const maxFrame = Math.max(0, playbackState.timeline.frames.length - 1);
+    const clamped = Math.min(Math.max(index, 0), maxFrame);
+    playbackState.currentFrame = clamped;
+    updatePlaybackControlsUI();
+    render();
+  };
+
+  const startPlayback = () => {
+    if (!playbackState.timeline) {
+      return;
+    }
+    stopPlayback();
+    playbackState.playing = true;
+    playbackState.timer = window.setInterval(() => {
+      if (!playbackState.timeline) {
+        stopPlayback();
+        return;
+      }
+      const next = playbackState.currentFrame + 1;
+      if (next > playbackState.timeline.frames.length - 1) {
+        stopPlayback();
+        updatePlaybackControlsUI();
+        return;
+      }
+      setPlaybackFrame(next);
+    }, 550);
+    updatePlaybackControlsUI();
+  };
+
+  const setPlaybackTimeline = (timeline: PlaybackTimeline) => {
+    playbackState.timeline = timeline;
+    playbackState.currentFrame = 0;
+    stopPlayback();
+    updatePlaybackControlsUI();
+    render();
   };
 
   const resizeIfNeeded = (view: ViewModel) => {
@@ -466,6 +696,28 @@ function main() {
     infoPanel.nextLevelButton.textContent = `Next Level：${nextInfo.name}`;
   };
 
+  const normalizeViewModel = (
+    candidate: Partial<ViewModel> | null,
+    fallback: ViewModel
+  ): ViewModel => {
+    if (!candidate) {
+      return fallback;
+    }
+    return {
+      ...fallback,
+      ...candidate,
+      goals: candidate.goals ?? fallback.goals,
+      boxes: candidate.boxes ?? fallback.boxes,
+      player: candidate.player ?? fallback.player,
+      gridWidth: candidate.gridWidth ?? fallback.gridWidth,
+      gridHeight: candidate.gridHeight ?? fallback.gridHeight,
+      cellSize: candidate.cellSize ?? fallback.cellSize,
+      levelId: candidate.levelId ?? fallback.levelId,
+      levelName: candidate.levelName ?? fallback.levelName,
+      isComplete: candidate.isComplete ?? fallback.isComplete,
+    };
+  };
+
   const render = () => {
     viewModel = moonView(coreModel);
     const alreadyComplete = levelHasCachedCompletion(viewModel.levelId);
@@ -473,10 +725,24 @@ function main() {
       markLevelCompleted(viewModel.levelId);
     }
     const levelComplete = viewModel.isComplete || alreadyComplete;
-    resizeIfNeeded(viewModel);
-    renderScene(ctx, viewModel, handlers);
-    updateInfoPanel(infoPanel, viewModel);
-    updateNextLevelControl(viewModel, levelComplete);
+    const playbackFrame = playbackState.timeline
+      ? safePlaybackFrame(playbackState.currentFrame)
+      : null;
+    const displayView = normalizeViewModel(playbackFrame, viewModel);
+    resizeIfNeeded(displayView);
+    renderScene(
+      ctx,
+      displayView,
+      isPlaybackActive() ? passiveHandlers : handlers
+    );
+    updateInfoPanel(infoPanel, displayView);
+    if (isPlaybackActive()) {
+      infoPanel.nextLevelButton.hidden = true;
+      infoPanel.nextLevelButton.disabled = true;
+    } else {
+      updateNextLevelControl(viewModel, levelComplete);
+    }
+    updatePlaybackControlsUI();
   };
 
   const getBackupMetas = () => (list_backups(coreModel) ?? []) as BackupMeta[];
@@ -521,6 +787,7 @@ function main() {
   refreshBackups();
 
   const loadLevel = (levelId: number) => {
+    clearPlaybackTimeline();
     coreModel = init_model_for(levelId);
     thumbnailStore.clear();
     refreshBackups();
@@ -529,6 +796,7 @@ function main() {
   };
 
   const loadLevelFromJson = (json: string) => {
+    clearPlaybackTimeline();
     const parsed = load_from_json(json);
     if (!parsed || parsed.$tag !== 1) {
       throw new Error("Invalid JSON");
@@ -553,6 +821,10 @@ function main() {
   };
 
   const handleGameKey = (key: string) => {
+    if (isPlaybackActive()) {
+      clearPlaybackTimeline();
+      stopPlayback();
+    }
     if (handleLevelHotkey(key)) {
       return true;
     }
@@ -602,12 +874,50 @@ function main() {
       loadLevelFromJson(input.trim());
     } catch (error) {
       console.error(error);
-      window.alert("Failed to Load Level from JSON: " + error);
+      showToast("Failed to Load Level from JSON: " + error);
     }
   };
 
   const handleOpenLevelEditor = () => {
     window.open("editor.html", "_blank");
+  };
+
+  const handleLoadPlayback = async () => {
+    const input = await openMovesModal();
+    if (!input || !input.trim()) {
+      return;
+    }
+    try {
+      const timelineResult = build_playback_timeline(coreModel, input.trim());
+      const timeline = unwrapResult<PlaybackTimeline>(
+        timelineResult,
+        "build_playback_timeline"
+      );
+      setPlaybackTimeline(timeline);
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to load steps: " + error);
+    }
+  };
+
+  const handleExportMoves = async () => {
+    try {
+      const serialized = export_moves(coreModel) as string;
+      const copied = await copyToClipboard(serialized);
+      if (!copied) {
+        await openTextModal({
+          title: "Export Moves",
+          description: "Copy the serialized move steps below.",
+          initialValue: serialized,
+          confirmLabel: "Close",
+        });
+      } else {
+        showToast("Move steps copied to clipboard");
+      }
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to export moves: " + error);
+    }
   };
 
   navigation.loadJsonButton.addEventListener("click", () => {
@@ -620,48 +930,116 @@ function main() {
     handleOpenLevelEditor();
   });
 
+  playbackControls.loadButton.addEventListener("click", () => {
+    handleLoadPlayback();
+  });
+
+  playbackControls.exportButton.addEventListener("click", () => {
+    handleExportMoves();
+  });
+
+  playbackControls.playPauseButton.addEventListener("click", () => {
+    if (!isPlaybackActive()) {
+      return;
+    }
+    if (playbackState.playing) {
+      stopPlayback();
+      updatePlaybackControlsUI();
+    } else {
+      startPlayback();
+    }
+  });
+
+  playbackControls.clearButton.addEventListener("click", () => {
+    clearPlaybackTimeline();
+    render();
+  });
+
+  playbackControls.progress.addEventListener("input", (event) => {
+    stopPlayback();
+    const target = event.target as HTMLInputElement;
+    const value = Number(target.value);
+    setPlaybackFrame(Number.isFinite(value) ? value : 0);
+  });
+
   infoPanel.nextLevelButton.addEventListener("click", () => {
     if (pendingNextLevelId !== null) {
       loadLevel(pendingNextLevelId);
     }
   });
 
+  updatePlaybackControlsUI();
   render();
 }
 
 main();
 
 function openJsonModal(): Promise<string | null> {
+  return openTextModal({
+    title: "Load Level from JSON",
+    description: "Paste the level JSON data below to load a custom level",
+    placeholder: '{ "info": { ... }, "boxes": [] }',
+    confirmLabel: "Load",
+  });
+}
+
+interface TextModalOptions {
+  title: string;
+  description: string;
+  placeholder?: string;
+  initialValue?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
+function openMovesModal(): Promise<string | null> {
+  return openTextModal({
+    title: "Load Move Steps",
+    description: "Paste a serialized Array<Move> to preview playback.",
+    placeholder: '[{ "index": 1, "direction": "Right", "description": "" }]',
+    confirmLabel: "Load",
+  });
+}
+
+function openTextModal(options: TextModalOptions): Promise<string | null> {
   return new Promise((resolve) => {
+    const {
+      title,
+      description,
+      placeholder = "",
+      initialValue = "",
+      confirmLabel = "Confirm",
+      cancelLabel = "Cancel",
+    } = options;
     const overlay = document.createElement("div");
     overlay.className = "app-modal-overlay";
 
     const modal = document.createElement("div");
     modal.className = "app-modal";
 
-    const title = document.createElement("h3");
-    title.textContent = "Load Level from JSON";
-    modal.appendChild(title);
+    const titleEl = document.createElement("h3");
+    titleEl.textContent = title;
+    modal.appendChild(titleEl);
 
-    const description = document.createElement("p");
-    description.textContent =
-      "Paste the level JSON data below to load a custom level";
-    modal.appendChild(description);
+    const descriptionEl = document.createElement("p");
+    descriptionEl.textContent = description;
+    modal.appendChild(descriptionEl);
 
     const form = document.createElement("form");
     const textarea = document.createElement("textarea");
-    textarea.placeholder = '{ "info": { ... }, "boxes": [] }';
+    textarea.placeholder = placeholder;
+    textarea.value = initialValue;
     form.appendChild(textarea);
 
     const actions = document.createElement("div");
     actions.className = "app-modal__actions";
     const cancelBtn = document.createElement("button");
     cancelBtn.type = "button";
-    cancelBtn.textContent = "Cancel";
+    cancelBtn.textContent = cancelLabel;
     cancelBtn.className = "app-modal__button";
     const confirmBtn = document.createElement("button");
     confirmBtn.type = "submit";
-    confirmBtn.textContent = "Load";
+    confirmBtn.textContent = confirmLabel;
     confirmBtn.className = "app-modal__button app-modal__button--primary";
     actions.appendChild(cancelBtn);
     actions.appendChild(confirmBtn);
@@ -701,6 +1079,18 @@ function openJsonModal(): Promise<string | null> {
     document.body.appendChild(overlay);
     requestAnimationFrame(() => textarea.focus());
   });
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 function captureThumbnail(app: PIXI.Application): string {

@@ -303,7 +303,7 @@ pub suberror LoadLevel {
 
 ///|
 pub fn load_from_json(json : String) -> Level raise LoadLevel {
-  let j = @json.parse(json) catch { e => raise InvalidJson(e) }
+  let j = @json.parse(json) catch { e => raise LoadLevel::InvalidJson(e) }
   @json.from_json(j) catch {
     e => raise InvalidDataFormat(e)
   }

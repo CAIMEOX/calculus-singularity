@@ -11,6 +11,135 @@ fn Direction::from_key(key : String) -> Direction? {
 }
 
 ///|
+fn append_move_log(
+  moves : Array[Direction],
+  dir : Direction,
+) -> Array[Direction] {
+  let next = moves.copy()
+  next.push(dir)
+  next
+}
+
+///|
+fn trim_move_log(moves : Array[Direction]) -> Array[Direction] {
+  let len = moves.length()
+  if len == 0 {
+    moves
+  } else {
+    moves[:len - 1].to_array()
+  }
+}
+
+///|
+pub suberror PlaybackError {
+  InvalidJson(@json.ParseError)
+  InvalidData(@json.JsonDecodeError)
+  FrameOutOfRange(Int)
+}
+
+///|
+fn parse_move_sequence(
+  serialized : String,
+) -> Array[Direction] raise PlaybackError {
+  let json = @json.parse(serialized) catch {
+    e => raise PlaybackError::InvalidJson(e)
+  }
+  @json.from_json(json) catch {
+    e => raise PlaybackError::InvalidData(e)
+  }
+}
+
+///|
+fn reset_for_playback(model : Model) -> Model {
+  let baseBoxes = model.initialBoxes.copy()
+  {
+    player: model.initialPlayer,
+    boxes: baseBoxes,
+    hoveredBoxId: None,
+    gridWidth: model.gridWidth,
+    gridHeight: model.gridHeight,
+    cellSize: model.cellSize,
+    goals: model.goals,
+    history: Array::new(),
+    moveLog: Array::new(),
+    initialPlayer: model.initialPlayer,
+    initialBoxes: model.initialBoxes.copy(),
+    isComplete: goals_completed(baseBoxes, model.goals),
+    backups: model.backups,
+    activeBackupId: model.activeBackupId,
+    nextBackupId: model.nextBackupId,
+    levelId: model.levelId,
+    levelName: model.levelName,
+  }
+}
+
+///|
+fn snapshots_from_directions(
+  model : Model,
+  moves : Array[Direction],
+) -> Array[Snapshot] {
+  let mut cursor = reset_for_playback(model)
+  let snaps : Array[Snapshot] = Array::new(capacity=moves.length() + 1)
+  snaps.push({ player: cursor.player, boxes: cursor.boxes.copy() })
+  for dir in moves {
+    cursor = cursor.step(dir)
+    snaps.push({ player: cursor.player, boxes: cursor.boxes.copy() })
+  }
+  snaps
+}
+
+///|
+fn frames_from_snapshots(
+  template : Model,
+  snaps : Array[Snapshot],
+) -> Array[ViewModel] {
+  let frames : Array[ViewModel] = Array::new(capacity=snaps.length())
+  for snap in snaps {
+    let boxes = snap.boxes.copy()
+    frames.push({
+      player: snap.player,
+      boxes,
+      hoveredBoxId: None,
+      gridWidth: template.gridWidth,
+      gridHeight: template.gridHeight,
+      cellSize: template.cellSize,
+      goals: build_goal_views(template.goals, boxes),
+      isComplete: goals_completed(boxes, template.goals),
+      levelId: template.levelId,
+      levelName: template.levelName,
+    })
+  }
+  frames
+}
+
+///|
+pub fn export_moves(model : Model) -> String {
+  model.moveLog.to_json().stringify()
+}
+
+///|
+pub fn build_playback_timeline(
+  model : Model,
+  serialized : String,
+) -> PlaybackTimeline raise PlaybackError {
+  let dirs = parse_move_sequence(serialized)
+  let snapshots = snapshots_from_directions(model, dirs)
+  let frames = frames_from_snapshots(model, snapshots)
+  { moves: dirs, frames, snapshots }
+}
+
+///|
+pub fn playback_frame(
+  timeline : PlaybackTimeline,
+  index : Int,
+) -> ViewModel raise PlaybackError {
+  if index < 0 || index >= timeline.frames.length() {
+    raise FrameOutOfRange(index)
+  }
+  timeline.frames[index]
+}
+
+///|
 /// Initialize the core model
 pub fn init_model() -> Model {
   init_model_for(DEFAULT_LEVEL_ID)
@@ -34,6 +163,7 @@ pub fn init_model_with_json(json : String) -> Model {
 pub fn build_model(lvl : Level) -> Model {
   let boxes = lvl.boxes
   let goals = lvl.goals
+  let initialBoxes = boxes.copy()
   {
     player: lvl.player,
     boxes,
@@ -43,6 +173,9 @@ pub fn build_model(lvl : Level) -> Model {
     cellSize: lvl.info.cellSize,
     goals,
     history: Array::new(),
+    moveLog: Array::new(),
+    initialPlayer: lvl.player,
+    initialBoxes,
     isComplete: goals_completed(boxes, goals),
     backups: Array::new(),
     activeBackupId: None,
@@ -98,7 +231,8 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
   match find_box_at_position(self.boxes, nextPlayer) {
     None => {
       let history = append_snapshot(self.history, self.player, self.boxes)
-      { ..self, player: nextPlayer, history }
+      let moveLog = append_move_log(self.moveLog, direction)
+      { ..self, player: nextPlayer, history, moveLog }
     }
     Some(box) => {
       let (chain, landing, blocked) = collect_box_chain(
@@ -110,6 +244,7 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
         let (merged_boxes, merged) = merge_chain_if_possible(self.boxes, chain)
         if merged {
           let history = append_snapshot(self.history, self.player, self.boxes)
+          let moveLog = append_move_log(self.moveLog, direction)
           {
             ..self,
             player: nextPlayer,
@@ -117,12 +252,14 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
             hoveredBoxId: None,
             history,
             isComplete: goals_completed(merged_boxes, self.goals),
+            moveLog,
           }
         } else {
           self
         }
       } else {
         let history = append_snapshot(self.history, self.player, self.boxes)
+        let moveLog = append_move_log(self.moveLog, direction)
         let moved_boxes = move_box_chain(self.boxes, chain, direction)
         {
           ..self,
@@ -131,6 +268,7 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
           hoveredBoxId: None,
           history,
           isComplete: goals_completed(moved_boxes, self.goals),
+          moveLog,
         }
       }
     }

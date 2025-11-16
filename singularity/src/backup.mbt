@@ -7,6 +7,7 @@ pub fn undo(model : Model) -> Model {
   } else {
     let snapshot = model.history[len - 1]
     let trimmed = model.history[:len - 1].to_array()
+    let moveLog = trim_move_log(model.moveLog)
     let boxes = snapshot.boxes.copy()
     {
       player: snapshot.player,
@@ -16,6 +17,7 @@ pub fn undo(model : Model) -> Model {
       gridHeight: model.gridHeight,
       cellSize: model.cellSize,
       history: trimmed,
+      moveLog,
       goals: model.goals,
       isComplete: goals_completed(boxes, model.goals),
       backups: model.backups,
@@ -23,6 +25,8 @@ pub fn undo(model : Model) -> Model {
       nextBackupId: model.nextBackupId,
       levelId: model.levelId,
       levelName: model.levelName,
+      initialPlayer: model.initialPlayer,
+      initialBoxes: model.initialBoxes,
     }
   }
 }
@@ -50,12 +54,15 @@ pub fn Model::save_backup(self : Model, timestamp : Int) -> Model {
     gridHeight: self.gridHeight,
     cellSize: self.cellSize,
     goals: self.goals,
-    history: self.history,
-    isComplete: self.isComplete,
-    backups: updatedBackups,
-    activeBackupId: Some(newId),
-    nextBackupId: newId,
-    levelId: self.levelId,
+  history: self.history,
+  moveLog: self.moveLog,
+  initialPlayer: self.initialPlayer,
+  initialBoxes: self.initialBoxes,
+  isComplete: self.isComplete,
+  backups: updatedBackups,
+  activeBackupId: Some(newId),
+  nextBackupId: newId,
+  levelId: self.levelId,
     levelName: self.levelName,
   }
 }
@@ -88,6 +95,9 @@ fn capture_backup_state(model : Model) -> BackupState {
     boxes: model.boxes.copy(),
     hoveredBoxId: model.hoveredBoxId,
     history: model.history.copy(),
+    moveLog: model.moveLog.copy(),
+    initialPlayer: model.initialPlayer,
+    initialBoxes: model.initialBoxes.copy(),
   }
 }
 
@@ -99,6 +109,7 @@ fn apply_backup_state(
 ) -> Model {
   let boxes = state.boxes.copy()
   let history = state.history.copy()
+  let moveLog = state.moveLog.copy()
   {
     player: state.player,
     boxes,
@@ -108,6 +119,9 @@ fn apply_backup_state(
     cellSize: model.cellSize,
     goals: model.goals,
     history,
+    moveLog,
+    initialPlayer: model.initialPlayer,
+    initialBoxes: model.initialBoxes,
     isComplete: goals_completed(boxes, model.goals),
     backups: model.backups,
     activeBackupId: Some(activeId),
