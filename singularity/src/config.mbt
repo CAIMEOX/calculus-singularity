@@ -556,6 +556,63 @@ fn build_level12() -> Level {
 }
 
 ///|
+fn build_level13() -> Level {
+  let json : Json = {
+    "info": {
+      "id": 13,
+      "name": "How Did We Get Here? (by Asterless)",
+      "description": "Loop and swap out",
+      "gridWidth": 7,
+      "gridHeight": 5,
+      "cellSize": 48,
+    },
+    "player": { "x": 3, "y": 3 },
+    "boxes": [
+      { "id": 6, "pos": { "x": 2, "y": 3 }, "kind": ["Prop", "A"] },
+      {
+        "id": 12,
+        "pos": { "x": 1, "y": 2 },
+        "kind": ["And", ["Prop", "B"], ["Prop", "A"]],
+      },
+      {
+        "id": 15,
+        "pos": { "x": 2, "y": 2 },
+        "kind": ["Implication", ["Prop", "A"], ["Prop", "B"]],
+      },
+      { "id": 17, "pos": { "x": 5, "y": 2 }, "kind": ["Fst", null] },
+      { "id": 21, "pos": { "x": 3, "y": 1 }, "kind": "Wall" },
+      { "id": 24, "pos": { "x": 3, "y": 2 }, "kind": "Wall" },
+      {
+        "id": 25,
+        "pos": { "x": 4, "y": 2 },
+        "kind": ["Implication", ["Prop", "B"], ["Prop", "A"]],
+      },
+      { "id": 34, "pos": { "x": 4, "y": 3 }, "kind": ["Prop", "P"] },
+      { "id": 35, "pos": { "x": 1, "y": 1 }, "kind": ["Neg", null] },
+      {
+        "id": 36,
+        "pos": { "x": 4, "y": 1 },
+        "kind": ["And", ["Prop", "R"], ["Prop", "S"]],
+      },
+      { "id": 37, "pos": { "x": 2, "y": 1 }, "kind": ["Prop", "R"] },
+      { "id": 40, "pos": { "x": 5, "y": 1 }, "kind": ["Snd", null] },
+    ],
+    "goals": [
+      {
+        "pos": { "x": 6, "y": 0 },
+        "prop": ["And", ["Prop", "A"], ["Prop", "B"]],
+      },
+      { "pos": { "x": 0, "y": 0 }, "prop": ["Neg", [["Prop", "P"]]] },
+      {
+        "pos": { "x": 3, "y": 0 },
+        "prop": ["And", ["Prop", "S"], ["Prop", "R"]],
+      },
+    ],
+  }
+  (try? @json.from_json(json)).unwrap()
+}
+
+///|
 pub let pool : Map[Int, Level] = level_pool()
 
 ///|
@@ -573,6 +630,7 @@ fn level_pool() -> Map[Int, Level] {
     10: build_level10(),
     11: build_level11(),
     12: build_level12(),
+    13: build_level13(),
   }
 }
 

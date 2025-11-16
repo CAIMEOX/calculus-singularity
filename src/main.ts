@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { createBox,  } from "./box";
+import { createBox } from "./box";
 import {
   createInfoPanel,
   updateInfoPanel,
@@ -35,9 +35,8 @@ interface BackupMeta {
   timestamp: number;
 }
 
-
-
 const BACKGROUND_MUSIC_SRC = new URL("./assets/ah.mp3", import.meta.url).href;
+const GITHUB_SOURCE_URL = "https://github.com/CAIMEOX/calculus-singularity";
 let backgroundMusic: HTMLAudioElement | null = null;
 
 const thumbnailStore = new Map<number, string>();
@@ -193,6 +192,102 @@ function createPixiApplication(width: number, height: number) {
   });
 }
 
+interface NavigationBar {
+  element: HTMLElement;
+  loadJsonButton: HTMLButtonElement;
+  openLevelEditorButton: HTMLButtonElement;
+  closeMenu: () => void;
+}
+
+function createNavigationBar(githubUrl: string): NavigationBar {
+  const nav = document.createElement("header");
+  nav.className = "app-nav";
+
+  const inner = document.createElement("div");
+  inner.className = "app-nav__inner";
+
+  const brand = document.createElement("div");
+  brand.className = "app-nav__brand";
+  brand.textContent = "Calculus Singularity";
+
+  const dropdown = document.createElement("div");
+  dropdown.className = "app-nav__dropdown";
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "app-nav__dropdown-toggle";
+  toggle.textContent = "Menu";
+  toggle.setAttribute("aria-haspopup", "true");
+  toggle.setAttribute("aria-expanded", "false");
+
+  const list = document.createElement("div");
+  list.className = "app-nav__dropdown-list";
+
+  const loadJsonButton = document.createElement("button");
+  loadJsonButton.type = "button";
+  loadJsonButton.className = "app-nav__dropdown-item";
+  loadJsonButton.textContent = "Load From JSON";
+  list.appendChild(loadJsonButton);
+
+  const githubLink = document.createElement("button");
+  githubLink.type = "button";
+  githubLink.className = "app-nav__dropdown-item";
+  githubLink.textContent = "View GitHub Source";
+  githubLink.addEventListener("click", () => {
+    window.open(githubUrl, "_blank");
+  });
+  list.appendChild(githubLink);
+
+  const openLevelEditorButton = document.createElement("button");
+  openLevelEditorButton.type = "button";
+  openLevelEditorButton.className = "app-nav__dropdown-item";
+  openLevelEditorButton.textContent = "Open Level Editor";
+  list.appendChild(openLevelEditorButton);
+
+  dropdown.appendChild(toggle);
+  dropdown.appendChild(list);
+  inner.appendChild(brand);
+  inner.appendChild(dropdown);
+  nav.appendChild(inner);
+
+  const setOpen = (open: boolean) => {
+    dropdown.classList.toggle("is-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  };
+
+  const closeMenu = () => setOpen(false);
+
+  list.addEventListener("click", () => closeMenu());
+
+  const onDocumentClick = (event: MouseEvent) => {
+    if (!dropdown.contains(event.target as Node)) {
+      closeMenu();
+    }
+  };
+
+  const onEscape = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      closeMenu();
+    }
+  };
+
+  toggle.addEventListener("click", () => {
+    const next = !dropdown.classList.contains("is-open");
+    setOpen(next);
+  });
+
+  document.addEventListener("click", onDocumentClick);
+  document.addEventListener("keydown", onEscape);
+  const cleanup = () => {
+    document.removeEventListener("click", onDocumentClick);
+    document.removeEventListener("keydown", onEscape);
+    window.removeEventListener("beforeunload", cleanup);
+  };
+  window.addEventListener("beforeunload", cleanup);
+
+  return { element: nav, loadJsonButton, openLevelEditorButton, closeMenu };
+}
+
 // Kick background music off once the browser allows audio playback.
 function setupBackgroundMusic() {
   if (backgroundMusic) {
@@ -246,12 +341,14 @@ function applyCanvasSize(
   canvas.style.height = `${height}px`;
 }
 
-function mount(app: PIXI.Application): {
+function mount(
+  app: PIXI.Application,
+  container: HTMLElement
+): {
   infoPanel: InfoPanelElements;
   backupList: HTMLElement;
   stageWrapper: HTMLElement;
 } {
-  const container = document.getElementById("game-container")!;
   container.classList.add("game-container");
 
   const { panel: backupPanel, list: backupList } = createBackupPanel();
@@ -269,6 +366,17 @@ function mount(app: PIXI.Application): {
 }
 
 function main() {
+  const container = document.getElementById("game-container");
+  if (!container) {
+    throw new Error("Game container not found");
+  }
+  const navigation = createNavigationBar(GITHUB_SOURCE_URL);
+  if (container.parentElement) {
+    container.parentElement.insertBefore(navigation.element, container);
+  } else {
+    document.body.prepend(navigation.element);
+  }
+
   let coreModel: CoreModel = init_model();
   let viewModel: ViewModel = moonView(coreModel);
   let rendererDims: StageDimensions = {
@@ -295,7 +403,7 @@ function main() {
     rendererDims.gridHeight,
     rendererDims.cellSize
   );
-  const { infoPanel, backupList, stageWrapper } = mount(app);
+  const { infoPanel, backupList, stageWrapper } = mount(app, container);
   let ctx = createRenderer(app, viewModel);
   let pendingNextLevelId: number | null = null;
 
@@ -485,7 +593,7 @@ function main() {
     }
   });
 
-  infoPanel.loadJsonButton.addEventListener("click", async () => {
+  const handleLoadFromJson = async () => {
     const input = await openJsonModal();
     if (!input || !input.trim()) {
       return;
@@ -496,6 +604,20 @@ function main() {
       console.error(error);
       window.alert("Failed to Load Level from JSON: " + error);
     }
+  };
+
+  const handleOpenLevelEditor = () => {
+    window.open("editor.html", "_blank");
+  };
+
+  navigation.loadJsonButton.addEventListener("click", () => {
+    navigation.closeMenu();
+    handleLoadFromJson();
+  });
+
+  navigation.openLevelEditorButton.addEventListener("click", () => {
+    navigation.closeMenu();
+    handleOpenLevelEditor();
   });
 
   infoPanel.nextLevelButton.addEventListener("click", () => {
