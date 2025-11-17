@@ -36,7 +36,7 @@ pub struct Model {
   cellSize : Int
   goals : Array[Goal]
   history : Array[Snapshot]
-  moveLog : Array[Direction]
+  moveLog : List[Direction]
   initialPlayer : Vector
   initialBoxes : Array[Box]
   isComplete : Bool
@@ -117,7 +117,7 @@ pub struct BackupState {
   boxes : Array[Box]
   hoveredBoxId : Int?
   history : Array[Snapshot]
-  moveLog : Array[Direction]
+  moveLog : List[Direction]
   initialPlayer : Vector
   initialBoxes : Array[Box]
 }
@@ -147,3 +147,6 @@ enum Direction {
   Left
   Right
 } derive(Eq, @json.FromJson, ToJson)
+
+///|
+using @list {type List}

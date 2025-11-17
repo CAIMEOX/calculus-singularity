@@ -95,7 +95,7 @@ fn capture_backup_state(model : Model) -> BackupState {
     boxes: model.boxes.copy(),
     hoveredBoxId: model.hoveredBoxId,
     history: model.history.copy(),
-    moveLog: model.moveLog.copy(),
+    moveLog: model.moveLog,
     initialPlayer: model.initialPlayer,
     initialBoxes: model.initialBoxes.copy(),
   }
@@ -109,7 +109,7 @@ fn apply_backup_state(
 ) -> Model {
   let boxes = state.boxes.copy()
   let history = state.history.copy()
-  let moveLog = state.moveLog.copy()
+  let moveLog = state.moveLog
   {
     player: state.player,
     boxes,

@@ -11,22 +11,10 @@ fn Direction::from_key(key : String) -> Direction? {
 }
 
 ///|
-fn append_move_log(
-  moves : Array[Direction],
-  dir : Direction,
-) -> Array[Direction] {
-  let next = moves.copy()
-  next.push(dir)
-  next
-}
-
-///|
-fn trim_move_log(moves : Array[Direction]) -> Array[Direction] {
-  let len = moves.length()
-  if len == 0 {
-    moves
-  } else {
-    moves[:len - 1].to_array()
+fn trim_move_log(moves : List[Direction]) -> List[Direction] {
+  match moves {
+    Empty => List::empty()
+    More(_, tail~) => tail
   }
 }
 
@@ -61,7 +49,7 @@ fn reset_for_playback(model : Model) -> Model {
     cellSize: model.cellSize,
     goals: model.goals,
     history: Array::new(),
-    moveLog: Array::new(),
+    moveLog: List::empty(),
     initialPlayer: model.initialPlayer,
     initialBoxes: model.initialBoxes.copy(),
     isComplete: goals_completed(baseBoxes, model.goals),
@@ -114,7 +102,8 @@ fn frames_from_snapshots(
 
 ///|
 pub fn export_moves(model : Model) -> String {
-  model.moveLog.to_json().stringify()
+  let ordered = model.moveLog.rev().to_array()
+  ordered.to_json().stringify()
 }
 
 ///|
@@ -173,7 +162,7 @@ pub fn build_model(lvl : Level) -> Model {
     cellSize: lvl.info.cellSize,
     goals,
     history: Array::new(),
-    moveLog: Array::new(),
+    moveLog: List::empty(),
     initialPlayer: lvl.player,
     initialBoxes,
     isComplete: goals_completed(boxes, goals),
@@ -231,7 +220,7 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
   match find_box_at_position(self.boxes, nextPlayer) {
     None => {
       let history = append_snapshot(self.history, self.player, self.boxes)
-      let moveLog = append_move_log(self.moveLog, direction)
+      let moveLog = self.moveLog.prepend(direction)
       { ..self, player: nextPlayer, history, moveLog }
     }
     Some(box) => {
@@ -244,7 +233,7 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
         let (merged_boxes, merged) = merge_chain_if_possible(self.boxes, chain)
         if merged {
           let history = append_snapshot(self.history, self.player, self.boxes)
-          let moveLog = append_move_log(self.moveLog, direction)
+          let moveLog = self.moveLog.prepend(direction)
           {
             ..self,
             player: nextPlayer,
@@ -259,7 +248,7 @@ pub fn Model::step(self : Model, direction : Direction) -> Model {
         }
       } else {
         let history = append_snapshot(self.history, self.player, self.boxes)
-        let moveLog = append_move_log(self.moveLog, direction)
+        let moveLog = self.moveLog.prepend(direction)
         let moved_boxes = move_box_chain(self.boxes, chain, direction)
         {
           ..self,
