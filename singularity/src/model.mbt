@@ -41,23 +41,13 @@ fn parse_move_sequence(
 fn reset_for_playback(model : Model) -> Model {
   let baseBoxes = model.initialBoxes.copy()
   {
-    player: model.initialPlayer,
+    ..model,
     boxes: baseBoxes,
     hoveredBoxId: None,
-    gridWidth: model.gridWidth,
-    gridHeight: model.gridHeight,
-    cellSize: model.cellSize,
-    goals: model.goals,
-    history: Array::new(),
+    history: List::empty(),
     moveLog: List::empty(),
-    initialPlayer: model.initialPlayer,
     initialBoxes: model.initialBoxes.copy(),
     isComplete: goals_completed(baseBoxes, model.goals),
-    backups: model.backups,
-    activeBackupId: model.activeBackupId,
-    nextBackupId: model.nextBackupId,
-    levelId: model.levelId,
-    levelName: model.levelName,
   }
 }
 
@@ -161,7 +151,7 @@ pub fn build_model(lvl : Level) -> Model {
     gridHeight: lvl.info.gridHeight,
     cellSize: lvl.info.cellSize,
     goals,
-    history: Array::new(),
+    history: List::empty(),
     moveLog: List::empty(),
     initialPlayer: lvl.player,
     initialBoxes,
@@ -276,13 +266,11 @@ fn has_box(boxes : Array[Box], boxId : Int) -> Bool {
 
 ///|
 fn append_snapshot(
-  history : Array[Snapshot],
+  history : List[Snapshot],
   player : Vector,
   boxes : Array[Box],
-) -> Array[Snapshot] {
-  let next = history.copy()
-  next.push({ player, boxes: boxes.copy() })
-  next
+) -> List[Snapshot] {
+  history.prepend({ player, boxes: boxes.copy() })
 }
 
 ///|

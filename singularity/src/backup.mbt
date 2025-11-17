@@ -1,32 +1,30 @@
 ///|
 /// Undo the last move if history is available
 pub fn undo(model : Model) -> Model {
-  let len = model.history.length()
-  if len == 0 {
-    model
-  } else {
-    let snapshot = model.history[len - 1]
-    let trimmed = model.history[:len - 1].to_array()
-    let moveLog = trim_move_log(model.moveLog)
-    let boxes = snapshot.boxes.copy()
-    {
-      player: snapshot.player,
-      boxes,
-      hoveredBoxId: None,
-      gridWidth: model.gridWidth,
-      gridHeight: model.gridHeight,
-      cellSize: model.cellSize,
-      history: trimmed,
-      moveLog,
-      goals: model.goals,
-      isComplete: goals_completed(boxes, model.goals),
-      backups: model.backups,
-      activeBackupId: model.activeBackupId,
-      nextBackupId: model.nextBackupId,
-      levelId: model.levelId,
-      levelName: model.levelName,
-      initialPlayer: model.initialPlayer,
-      initialBoxes: model.initialBoxes,
+  match model.history {
+    Empty => model
+    More(snapshot, tail=rest) => {
+      let moveLog = trim_move_log(model.moveLog)
+      let boxes = snapshot.boxes.copy()
+      {
+        player: snapshot.player,
+        boxes,
+        hoveredBoxId: None,
+        gridWidth: model.gridWidth,
+        gridHeight: model.gridHeight,
+        cellSize: model.cellSize,
+        history: rest,
+        moveLog,
+        goals: model.goals,
+        isComplete: goals_completed(boxes, model.goals),
+        backups: model.backups,
+        activeBackupId: model.activeBackupId,
+        nextBackupId: model.nextBackupId,
+        levelId: model.levelId,
+        levelName: model.levelName,
+        initialPlayer: model.initialPlayer,
+        initialBoxes: model.initialBoxes,
+      }
     }
   }
 }
@@ -54,15 +52,15 @@ pub fn Model::save_backup(self : Model, timestamp : Int) -> Model {
     gridHeight: self.gridHeight,
     cellSize: self.cellSize,
     goals: self.goals,
-  history: self.history,
-  moveLog: self.moveLog,
-  initialPlayer: self.initialPlayer,
-  initialBoxes: self.initialBoxes,
-  isComplete: self.isComplete,
-  backups: updatedBackups,
-  activeBackupId: Some(newId),
-  nextBackupId: newId,
-  levelId: self.levelId,
+    history: self.history,
+    moveLog: self.moveLog,
+    initialPlayer: self.initialPlayer,
+    initialBoxes: self.initialBoxes,
+    isComplete: self.isComplete,
+    backups: updatedBackups,
+    activeBackupId: Some(newId),
+    nextBackupId: newId,
+    levelId: self.levelId,
     levelName: self.levelName,
   }
 }
@@ -94,7 +92,7 @@ fn capture_backup_state(model : Model) -> BackupState {
     player: model.player,
     boxes: model.boxes.copy(),
     hoveredBoxId: model.hoveredBoxId,
-    history: model.history.copy(),
+    history: model.history,
     moveLog: model.moveLog,
     initialPlayer: model.initialPlayer,
     initialBoxes: model.initialBoxes.copy(),
@@ -108,26 +106,17 @@ fn apply_backup_state(
   activeId : Int,
 ) -> Model {
   let boxes = state.boxes.copy()
-  let history = state.history.copy()
+  let history = state.history
   let moveLog = state.moveLog
   {
+    ..model,
     player: state.player,
     boxes,
     hoveredBoxId: state.hoveredBoxId,
-    gridWidth: model.gridWidth,
-    gridHeight: model.gridHeight,
-    cellSize: model.cellSize,
-    goals: model.goals,
     history,
     moveLog,
-    initialPlayer: model.initialPlayer,
-    initialBoxes: model.initialBoxes,
     isComplete: goals_completed(boxes, model.goals),
-    backups: model.backups,
     activeBackupId: Some(activeId),
-    nextBackupId: model.nextBackupId,
-    levelId: model.levelId,
-    levelName: model.levelName,
   }
 }
 
@@ -178,14 +167,5 @@ fn backup_meta(node : BackupNode) -> BackupMeta {
 
 ///|
 fn find_backup_node(backups : Array[BackupNode], id : Int) -> BackupNode? {
-  let len = backups.length()
-  let mut i = 0
-  while i < len {
-    let node = backups[i]
-    if node.id == id {
-      return Some(node)
-    }
-    i += 1
-  }
-  None
+  backups.search_by(node => node.id == id).map(idx => backups[idx])
 }

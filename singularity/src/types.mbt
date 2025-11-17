@@ -35,7 +35,7 @@ pub struct Model {
   gridHeight : Int
   cellSize : Int
   goals : Array[Goal]
-  history : Array[Snapshot]
+  history : List[Snapshot]
   moveLog : List[Direction]
   initialPlayer : Vector
   initialBoxes : Array[Box]
@@ -116,7 +116,7 @@ pub struct BackupState {
   player : Vector
   boxes : Array[Box]
   hoveredBoxId : Int?
-  history : Array[Snapshot]
+  history : List[Snapshot]
   moveLog : List[Direction]
   initialPlayer : Vector
   initialBoxes : Array[Box]
