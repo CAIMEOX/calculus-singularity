@@ -13,7 +13,7 @@ import {
   kind_to_label,
   kind_to_string,
 } from "../singularity/target/js/release/build/cs.js";
-import { styleForKind } from "./utils.js";
+import { styleForKind, unwrapResult } from "./utils.js";
 import { Level, LevelBox, LevelInfo, Vector2 } from "./types";
 
 type ToolId =
@@ -193,10 +193,7 @@ function computeNextBoxId(boxes: LevelBox[]): number {
 function cloneLevelData(value: Level): Level {
   const serialized = save_to_json(value);
   const parsed = load_from_json(serialized);
-  if (!parsed || parsed.$tag === 0) {
-    throw new Error("无法克隆 Level 数据");
-  }
-  return parsed._0 as Level;
+  return unwrapResult(parsed, "load_from_json");
 }
 
 function clampLevelEntities() {

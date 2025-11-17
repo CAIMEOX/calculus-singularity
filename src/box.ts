@@ -1,5 +1,4 @@
 import * as PIXI from "pixi.js";
-import { styleForKind } from "./utils";
 
 export interface BoxStyle {
   size: number;
@@ -27,8 +26,6 @@ export function createBox(
 ): PIXI.Container {
   const finalStyle: BoxStyle = { ...baseStyle, ...style, size: cellSize };
   const boxContainer = new PIXI.Container();
-  // boxContainer.width = finalStyle.size;
-  // boxContainer.height = finalStyle.size;
 
   const graphics = new PIXI.Graphics();
 

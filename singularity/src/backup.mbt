@@ -7,23 +7,13 @@ pub fn undo(model : Model) -> Model {
       let moveLog = trim_move_log(model.moveLog)
       let boxes = snapshot.boxes.copy()
       {
+        ..model,
         player: snapshot.player,
         boxes,
         hoveredBoxId: None,
-        gridWidth: model.gridWidth,
-        gridHeight: model.gridHeight,
-        cellSize: model.cellSize,
         history: rest,
         moveLog,
-        goals: model.goals,
         isComplete: goals_completed(boxes, model.goals),
-        backups: model.backups,
-        activeBackupId: model.activeBackupId,
-        nextBackupId: model.nextBackupId,
-        levelId: model.levelId,
-        levelName: model.levelName,
-        initialPlayer: model.initialPlayer,
-        initialBoxes: model.initialBoxes,
       }
     }
   }
@@ -45,23 +35,10 @@ pub fn Model::save_backup(self : Model, timestamp : Int) -> Model {
     self.activeBackupId,
   )
   {
-    player: self.player,
-    boxes: self.boxes,
-    hoveredBoxId: self.hoveredBoxId,
-    gridWidth: self.gridWidth,
-    gridHeight: self.gridHeight,
-    cellSize: self.cellSize,
-    goals: self.goals,
-    history: self.history,
-    moveLog: self.moveLog,
-    initialPlayer: self.initialPlayer,
-    initialBoxes: self.initialBoxes,
-    isComplete: self.isComplete,
+    ..self,
     backups: updatedBackups,
     activeBackupId: Some(newId),
     nextBackupId: newId,
-    levelId: self.levelId,
-    levelName: self.levelName,
   }
 }
 

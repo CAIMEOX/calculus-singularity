@@ -1,5 +1,43 @@
+import { Result as MbtResult } from "../singularity/target/js/release/build/moonbit";
+export type Result<T, E> = MbtResult<T, E>;
+
 export type CoreModel = "core-model-placeholder";
 export type Kind = "kind-placeholder";
+export type MoveStep = "move-step-placeholder";
+export type KindParseError = "kind-parse-error-placeholder";
+export type LoadLevelError = "load-level-error-placeholder";
+export type PlaybackError = "playback-error-placeholder";
+export type Int = number;
+
+export interface BackupMeta {
+  id: number;
+  parentId: number | null;
+  childIds: number[];
+  timestamp: number;
+}
+
+export interface PlaybackTimeline {
+  moves: MoveStep[];
+  frames: ViewModel[];
+  snapshots?: { player: Vector2; boxes: any[] }[];
+}
+
+export interface PlaybackState {
+  timeline: PlaybackTimeline | null;
+  currentFrame: number;
+  playing: boolean;
+  timer: number | null;
+}
+
+export interface PlaybackControls {
+  container: HTMLElement;
+  loadButton: HTMLButtonElement;
+  exportButton: HTMLButtonElement;
+  playPauseButton: HTMLButtonElement;
+  clearButton: HTMLButtonElement;
+  progress: HTMLInputElement;
+  label: HTMLElement;
+}
 
 export interface Vector2 {
   x: number;
@@ -67,17 +105,17 @@ export interface LevelInfo {
 export interface LevelBox {
   id: number;
   pos: Vector2;
-  kind: any;
+  kind: Kind;
 }
 
-export interface LevelGoal {
+export interface Goal {
   pos: Vector2;
-  prop: any;
+  prop: Kind;
 }
 
 export interface Level {
   info: LevelInfo;
   player: Vector2;
   boxes: LevelBox[];
-  goals: LevelGoal[];
+  goals: Goal[];
 }

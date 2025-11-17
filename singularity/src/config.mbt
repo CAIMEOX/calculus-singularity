@@ -636,7 +636,7 @@ fn level_pool() -> Map[Int, Level] {
 
 ///|
 fn get_description(levelId : Int) -> String {
-  guard find_level(levelId) is Some(level) else { return "" }
+  guard find_level(levelId) is Some(level) else { "" }
   level.info.description
 }
 

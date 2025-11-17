@@ -5,7 +5,16 @@ import {
   updateInfoPanel,
   InfoPanelElements,
 } from "./infoPanel";
-import { Vector2, ViewModel, LevelInfo, CoreModel } from "./types";
+import {
+  Vector2,
+  ViewModel,
+  LevelInfo,
+  CoreModel,
+  PlaybackControls,
+  BackupMeta,
+  PlaybackState,
+  PlaybackTimeline,
+} from "./types";
 import { createBackupPanel, renderBackupPanel } from "./backupPanel";
 import { createMobileControls } from "./mobileControls";
 import {
@@ -29,22 +38,7 @@ import {
   build_playback_timeline,
   playback_frame,
 } from "../singularity/target/js/release/build/cs.js";
-import { COLORS, styleForKind } from "./utils.js";
-
-function unwrapResult<T>(result: any, label: string): T {
-  if (!result || typeof result !== "object") {
-    throw new Error(`${label} returned no data`);
-  }
-  if ("$tag" in result) {
-    if (result.$tag === 1 && "_0" in result) {
-      return result._0 as T;
-    }
-    if (result.$tag === 0 && "_0" in result) {
-      throw result._0 ?? new Error(`${label} failed`);
-    }
-  }
-  return result as T;
-}
+import { COLORS, styleForKind, unwrapResult } from "./utils.js";
 
 function showToast(message: string) {
   let container = document.querySelector<HTMLElement>(".toast-container");
@@ -58,38 +52,6 @@ function showToast(message: string) {
   toast.textContent = message;
   container.appendChild(toast);
   window.setTimeout(() => toast.remove(), 3000);
-}
-
-interface BackupMeta {
-  id: number;
-  parentId: number | null;
-  childIds: number[];
-  timestamp: number;
-}
-
-type MoveStep = "move-step-placeholder"
-
-interface PlaybackTimeline {
-  moves: MoveStep[];
-  frames: ViewModel[];
-  snapshots?: { player: Vector2; boxes: any[] }[];
-}
-
-interface PlaybackState {
-  timeline: PlaybackTimeline | null;
-  currentFrame: number;
-  playing: boolean;
-  timer: number | null;
-}
-
-interface PlaybackControls {
-  container: HTMLElement;
-  loadButton: HTMLButtonElement;
-  exportButton: HTMLButtonElement;
-  playPauseButton: HTMLButtonElement;
-  clearButton: HTMLButtonElement;
-  progress: HTMLInputElement;
-  label: HTMLElement;
 }
 
 const BACKGROUND_MUSIC_SRC = new URL("./assets/ah.mp3", import.meta.url).href;
@@ -376,7 +338,8 @@ function createPlaybackControls(): PlaybackControls {
   const playPauseButton = document.createElement("button");
   playPauseButton.type = "button";
   playPauseButton.textContent = "Play";
-  playPauseButton.className = "playback-controls__button playback-controls__button--primary";
+  playPauseButton.className =
+    "playback-controls__button playback-controls__button--primary";
 
   const progress = document.createElement("input");
   progress.type = "range";
@@ -567,7 +530,7 @@ function main() {
     }
     try {
       const frameResult = playback_frame(playbackState.timeline, index);
-      return unwrapResult<ViewModel>(frameResult, "playback_frame");
+      return unwrapResult(frameResult, "playback_frame");
     } catch (error) {
       console.error("Failed to read playback frame", error);
       return null;
@@ -889,7 +852,7 @@ function main() {
     }
     try {
       const timelineResult = build_playback_timeline(coreModel, input.trim());
-      const timeline = unwrapResult<PlaybackTimeline>(
+      const timeline: PlaybackTimeline = unwrapResult(
         timelineResult,
         "build_playback_timeline"
       );

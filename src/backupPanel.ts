@@ -1,4 +1,4 @@
-import { formatRelativeTime } from "./time";
+import { formatRelativeTime } from "./utils";
 
 export interface BackupListItem {
   id: string;

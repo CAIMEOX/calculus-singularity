@@ -19,11 +19,6 @@ export function createMobileControls(
   const controls = document.createElement("div");
   controls.className = "mobile-controls";
 
-  // const title = document.createElement("p");
-  // title.className = "mobile-controls__label";
-  // title.textContent = "Touch Controls";
-  // controls.appendChild(title);
-
   const body = document.createElement("div");
   body.className = "mobile-controls__body";
 
@@ -124,12 +119,8 @@ function subscribeMedia(
   media: MediaQueryList,
   listener: () => void
 ): () => void {
-  if ("addEventListener" in media) {
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }
-  media.addListener(listener);
-  return () => media.removeListener(listener);
+  media.addEventListener("change", listener);
+  return () => media.removeEventListener("change", listener);
 }
 
 function shouldEnableMobileControls(): boolean {

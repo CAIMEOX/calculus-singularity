@@ -1,5 +1,5 @@
 import { kind_to_label } from "../singularity/target/js/release/build/cs";
-import { Kind } from "./types";
+import { Kind, Result } from "./types";
 
 export const COLORS = {
   GRID: 0x444444,
@@ -77,4 +77,32 @@ export function styleForKind(kind: Kind): {
         symbol: label,
       };
   }
+}
+
+export function formatRelativeTime(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  if (diff < 1000) return "just now";
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+export function unwrapResult<T, E>(result: Result<T, E>, label: string): T {
+  if (!result || typeof result !== "object") {
+    throw new Error(`${label} returned no data`);
+  }
+  if ("$tag" in result) {
+    if (result.$tag === 1 && "_0" in result) {
+      return result._0 as T;
+    }
+    if (result.$tag === 0 && "_0" in result) {
+      throw result._0 ?? new Error(`${label} failed`);
+    }
+  }
+  return result as T;
 }
