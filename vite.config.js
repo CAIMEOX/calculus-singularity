@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import { spawn } from "node:child_process";
 
@@ -85,5 +86,5 @@ export default defineConfig({
       },
     },
   },
-  plugins: [moonbitWatchPlugin()],
+  plugins: [moonbitWatchPlugin(), react()],
 });

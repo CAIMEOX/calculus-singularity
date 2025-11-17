@@ -10,12 +10,17 @@
     "app": "npm run build && electron-builder --config electron-builder.json"
   },
   "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
     "chokidar": "^4.0.3",
     "electron": "^39.1.2",
     "electron-builder": "^26.0.12",
+    "@vitejs/plugin-react": "^4.3.4",
     "vite": "^5.0.0"
   },
   "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "@pixi/filter-bloom": "^5.1.1",
     "@pixi/filter-glow": "^5.2.1",
     "pixi.js": "^7.3.0"
