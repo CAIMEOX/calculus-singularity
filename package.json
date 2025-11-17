@@ -4,8 +4,8 @@
   "description": "A sokoban game based on lambda calculus",
   "type": "module",
   "scripts": {
-    "dev": "cd singularity && moon build --target js && cd .. && vite",
-    "build": "cd singularity && moon build --target js && cd .. && vite build",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview",
     "app": "npm run build && electron-builder --config electron-builder.json"
   },
